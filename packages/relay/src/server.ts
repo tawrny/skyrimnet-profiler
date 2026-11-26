@@ -5,13 +5,16 @@
 // arrives, and appends one JSON line per call to a log. A second, read-only port serves that log to the viewer.
 //
 //   node src/server.ts [--listen 8089] [--upstream http://127.0.0.1:8090] [--log PATH] [--catalogue-file PATH]
-//                      [--api 8091] [--max-tokens 1024] [--no-no-think] [--trim] [--catalogue] [--reorder]
+//                      [--api 8091] [--max-tokens 1024] [--no-no-think] [--trim] [--catalogue off|npc|shared]
+//                      [--reorder]
 
 import { createServer, request as httpRequest, type IncomingMessage, type ServerResponse } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { DEFAULTS, shape, type CatalogueStore, type ChatRequest, type ShapeReport } from "./prompt/index.ts";
+import {
+  CATALOGUE_MODES, DEFAULTS, isCatalogueMode, shape, type CatalogueStore, type ChatRequest, type ShapeReport,
+} from "./prompt/index.ts";
 import { startApi } from "./api.ts";
 
 const { values: args } = parseArgs({
@@ -24,17 +27,18 @@ const { values: args } = parseArgs({
     "max-tokens": { type: "string", default: String(DEFAULTS.maxTokens) },
     "no-no-think": { type: "boolean", default: false },
     trim: { type: "boolean", default: false },
-    catalogue: { type: "boolean", default: false },
+    catalogue: { type: "string", default: DEFAULTS.catalogue },
     reorder: { type: "boolean", default: false },
   },
 });
 
+if (!isCatalogueMode(args.catalogue)) throw new Error(`--catalogue must be one of ${CATALOGUE_MODES.join(", ")}`);
 const opts = {
   ...DEFAULTS,
   maxTokens: Number(args["max-tokens"]),
   noThink: !args["no-no-think"],
   trim: args.trim!,
-  catalogue: args.catalogue!,
+  catalogue: args.catalogue,
   reorder: args.reorder!,
 };
 const upstream = new URL(args.upstream!);
@@ -217,7 +221,9 @@ createServer((req, res) => {
     res.end(JSON.stringify({ error: { message: `relay: ${String(err)}` } }));
   });
 }).listen(Number(args.listen), "127.0.0.1", () => {
-  const on = (["trim", "catalogue", "reorder"] as const).filter((k) => opts[k]).join(", ") || "none";
+  const on = [opts.trim && "trim", opts.catalogue !== "off" && `catalogue ${opts.catalogue}`, opts.reorder && "reorder"]
+    .filter((s) => s)
+    .join(", ") || "none";
   console.log(`relay 127.0.0.1:${args.listen} -> ${upstream.origin} | log ${logPath} | max_tokens ${opts.maxTokens} | no-think ${opts.noThink} | shaping: ${on}`);
 });
 
