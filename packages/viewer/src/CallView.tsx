@@ -16,6 +16,7 @@ const tok = (chars: number) => Math.round(chars / 4).toLocaleString();
 
 function AnatomyBar({ spans, total, shared }: { spans: Span[]; total: number; shared: number }) {
   const pct = (n: number) => `${(100 * n) / total}%`;
+
   return (
     <div className="anatomy">
       <div className="track">
@@ -58,19 +59,23 @@ function AnatomyBar({ spans, total, shared }: { spans: Span[]; total: number; sh
 export function CallView({ index, onOpen }: { index: number; onOpen: (i: number) => void }) {
   const [call, setCall] = useState<CallDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     setCall(null);
     api.call(index).then(setCall, (e: unknown) => setError(String(e)));
   }, [index]);
+
   if (error) {
     return <p className="err">{error}</p>;
   }
+
   if (!call) {
     return <p className="hint">Loading…</p>;
   }
 
   const reread = call.promptChars - call.sharedChars;
   const byKind = new Map<SpanKind, number>();
+
   for (const s of call.anatomy) {
     byKind.set(s.kind, (byKind.get(s.kind) ?? 0) + s.length);
   }
@@ -135,13 +140,7 @@ export function CallView({ index, onOpen }: { index: number; onOpen: (i: number)
                 </td>
                 <td>{s.label}</td>
                 <td className="num">{tok(s.length)}</td>
-                <td className="num">
-                  {s.start < call.sharedChars
-                    ? s.start + s.length <= call.sharedChars
-                      ? "reused"
-                      : "partly"
-                    : "re-read"}
-                </td>
+                <td className="num">{reuse(s, call.sharedChars)}</td>
               </tr>
             ))}
           </tbody>
@@ -153,4 +152,12 @@ export function CallView({ index, onOpen }: { index: number; onOpen: (i: number)
       </details>
     </div>
   );
+}
+
+function reuse(span: Span, sharedChars: number): string {
+  if (span.start >= sharedChars) {
+    return "re-read";
+  }
+
+  return span.start + span.length <= sharedChars ? "reused" : "partly";
 }

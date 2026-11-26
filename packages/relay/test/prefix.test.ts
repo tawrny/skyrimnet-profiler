@@ -35,6 +35,7 @@ const matchCases: [string, Seen[], MatchKind | null][] = [
   ["the same NPC's dialogue beats another NPC's", [seen(riaAt3), seen(lydiaAt3)], "same NPC"],
   ["another job's prompt", [seen(lydiaMood)], "other job"],
 ];
+
 for (const [name, earlier, expected] of matchCases) {
   test(`reach names the earlier call with the longest shared prefix: ${name}`, () => {
     assert.equal(reach(lydiaAt4, earlier).match, expected);
@@ -44,6 +45,7 @@ for (const [name, earlier, expected] of matchCases) {
 test("reach measures the prefix up to the first changed character", () => {
   const r = reach(lydiaAt4, [seen(riaAt3), seen(lydiaAt3)]);
   const text = seen(lydiaAt4).text;
+
   assert.equal(r.sharedChars, text.indexOf("4 PM"));
   assert.equal(r.promptChars, text.length);
 });
@@ -53,6 +55,7 @@ const breakCases: [string, Seen[], string][] = [
   ["the opening when nothing is shared", [], "system: Bio and rules"],
   ["the whole prompt when nothing differs", [seen(lydiaAt4)], "whole prompt"],
 ];
+
 for (const [name, earlier, expected] of breakCases) {
   test(`reach says where the reusable prefix ends: ${name}`, () => {
     assert.equal(reach(lydiaAt4, earlier).breaksIn, expected);

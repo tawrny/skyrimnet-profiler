@@ -32,19 +32,18 @@ export function reach(request: ChatRequest, earlier: readonly Seen[]): Reach {
   const me = seen(request);
   let sharedChars = 0;
   let match: MatchKind | null = null;
+
   for (const e of earlier) {
     const n = sharedPrefix(me.text, e.text);
+
     if (n <= sharedChars) {
       continue;
     }
+
     sharedChars = n;
-    match =
-      e.job !== me.job
-        ? "other job"
-        : me.npc !== null && e.npc === me.npc
-          ? "same NPC"
-          : "same job";
+    match = matchKind(me, e);
   }
+
   return {
     promptChars: me.text.length,
     sharedChars,
@@ -57,6 +56,16 @@ function breakLabel(request: ChatRequest, at: number, length: number): string {
   if (at >= length) {
     return "whole prompt";
   }
+
   const span = anatomy(request).find((s) => at >= s.start && at < s.start + s.length);
+
   return span ? `${span.kind}: ${span.label}` : "unknown";
+}
+
+function matchKind(me: Seen, earlier: Seen): MatchKind {
+  if (earlier.job !== me.job) {
+    return "other job";
+  }
+
+  return me.npc !== null && earlier.npc === me.npc ? "same NPC" : "same job";
 }

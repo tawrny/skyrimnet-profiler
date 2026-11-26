@@ -6,10 +6,12 @@ import { api } from "./api.ts";
 export function Volatility() {
   const [rows, setRows] = useState<SectionStat[] | null>(null);
   const [last, setLast] = useState(2000);
+
   useEffect(() => {
     setRows(null);
     api.volatility(last).then(setRows, () => setRows([]));
   }, [last]);
+
   return (
     <div className="volatility">
       <p className="hint">
@@ -43,15 +45,13 @@ export function Volatility() {
               .filter((r) => r.pairs >= 3)
               .map((r) => {
                 const rate = r.changed / r.pairs;
+
                 return (
                   <tr key={r.section}>
                     <td>{r.section}</td>
                     <td className="num">{Math.round(100 * rate)}%</td>
                     <td className="ratebar">
-                      <span
-                        style={{ width: `${100 * rate}%` }}
-                        className={rate > 0.5 ? "hot" : rate > 0.2 ? "warm" : "cool"}
-                      />
+                      <span style={{ width: `${100 * rate}%` }} className={heat(rate)} />
                     </td>
                     <td className="num">{r.avgTokens}</td>
                     <td className="num">{r.pairs}</td>
@@ -63,4 +63,16 @@ export function Volatility() {
       )}
     </div>
   );
+}
+
+function heat(rate: number): string {
+  if (rate > 0.5) {
+    return "hot";
+  }
+
+  if (rate > 0.2) {
+    return "warm";
+  }
+
+  return "cool";
 }

@@ -19,9 +19,11 @@ export function textOf(content: Message["content"] | undefined): string {
   if (typeof content === "string") {
     return content;
   }
+
   if (!Array.isArray(content)) {
     return "";
   }
+
   return content.map((part) => (typeof part.text === "string" ? part.text : "")).join("");
 }
 
@@ -34,12 +36,16 @@ export function promptText(request: ChatRequest): string {
 export function appendText(message: Message, addition: string): boolean {
   if (typeof message.content === "string") {
     message.content = message.content.replace(/\n+$/, "") + addition;
+
     return true;
   }
+
   if (Array.isArray(message.content)) {
     message.content.push({ type: "text", text: addition });
+
     return true;
   }
+
   return false;
 }
 
@@ -47,12 +53,16 @@ export function appendText(message: Message, addition: string): boolean {
 export function prependText(message: Message, addition: string): boolean {
   if (typeof message.content === "string") {
     message.content = addition + message.content;
+
     return true;
   }
+
   if (Array.isArray(message.content)) {
     message.content.unshift({ type: "text", text: addition });
+
     return true;
   }
+
   return false;
 }
 

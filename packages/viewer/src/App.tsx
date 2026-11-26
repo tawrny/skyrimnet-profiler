@@ -24,13 +24,16 @@ export function App() {
           if (!live) {
             return;
           }
+
           setCalls(r.calls);
           setTotal(r.total);
           setError(null);
         })
         .catch((e: unknown) => live && setError(String(e)));
+
     load();
     const t = setInterval(load, REFRESH_MS);
+
     return () => {
       live = false;
       clearInterval(t);

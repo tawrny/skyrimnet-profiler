@@ -46,6 +46,7 @@ const { values: args } = parseArgs({
 if (!isCatalogueMode(args.catalogue)) {
   throw new Error(`--catalogue must be one of ${CATALOGUE_MODES.join(", ")}`);
 }
+
 const opts = {
   ...DEFAULTS,
   maxTokens: Number(args["max-tokens"]),
@@ -78,6 +79,7 @@ const HOP_BY_HOP = new Set([
 function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const parts: Buffer[] = [];
+
     req.on("data", (c: Buffer) => parts.push(c));
     req.on("end", () => resolve(Buffer.concat(parts)));
     req.on("error", reject);
@@ -117,17 +119,22 @@ function replyText(body: string, streamed: boolean): ReplyParts {
   let timings: Timings | null = null;
   let usage: Usage | null = null;
   let provider: string | null = null;
+
   try {
     if (streamed) {
       for (const raw of body.split("\n")) {
         const line = raw.trim();
+
         if (!line.startsWith("data:") || line.slice(5).trim() === "[DONE]") {
           continue;
         }
+
         const chunk = JSON.parse(line.slice(5).trim());
+
         timings = chunk.timings ?? timings;
         usage = chunk.usage ?? usage;
         provider = chunk.provider ?? provider;
+
         for (const ch of chunk.choices ?? []) {
           content.push(ch.delta?.content ?? "");
           reasoning.push(ch.delta?.reasoning_content ?? "");
@@ -135,9 +142,11 @@ function replyText(body: string, streamed: boolean): ReplyParts {
       }
     } else {
       const parsed = JSON.parse(body);
+
       timings = parsed.timings ?? null;
       usage = parsed.usage ?? null;
       provider = parsed.provider ?? null;
+
       for (const ch of parsed.choices ?? []) {
         content.push(ch.message?.content ?? "");
         reasoning.push(ch.message?.reasoning_content ?? "");
@@ -146,12 +155,14 @@ function replyText(body: string, streamed: boolean): ReplyParts {
   } catch {
     return { reply: body.slice(0, 2000), reasoning: "", timings, usage, provider };
   }
+
   return { reply: content.join(""), reasoning: reasoning.join(""), timings, usage, provider };
 }
 
 const stamp = () => {
   const d = new Date();
   const p = (n: number, w = 2) => String(n).padStart(w, "0");
+
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(), 3)}`;
 };
 
@@ -160,25 +171,31 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   const isChat = req.method === "POST" && (req.url ?? "").endsWith("/chat/completions");
   let shaped: ChatRequest | null = null;
   let report: ShapeReport | null = null;
+
   if (isChat && body.length) {
     try {
       shaped = JSON.parse(body.toString("utf8")) as ChatRequest;
       report = shape(shaped, opts, store);
+
       if (report.catalogue && (report.catalogue.added.length || report.catalogue.changed.length)) {
         writeFileSync(cataloguePath, JSON.stringify(store, null, 1));
       }
+
       body = Buffer.from(JSON.stringify(shaped), "utf8");
     } catch {
       shaped = null; // not JSON: forward untouched
     }
   }
+
   const t0 = performance.now();
   const headers: Record<string, string> = {};
+
   for (const [k, v] of Object.entries(req.headers)) {
     if (!HOP_BY_HOP.has(k.toLowerCase()) && typeof v === "string") {
       headers[k] = v;
     }
   }
+
   // The reply is logged as text, so ask the upstream for it uncompressed; SkyrimNet's hop is local anyway.
   delete headers["accept-encoding"]; // Node lowercases incoming header names
   headers["content-length"] = String(body.length);
@@ -187,10 +204,12 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   // stops generating a reply nobody reads, which would hold a slot the retry needs.
   let clientGone = false;
   let firstByteMs: number | null = null; // what SkyrimNet's first-token deadline measures
+
   res.on("close", () => {
     if (res.writableFinished) {
       return;
     }
+
     clientGone = true;
     up.destroy();
   });
@@ -206,16 +225,20 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     },
     (upRes) => {
       const outHeaders: Record<string, string | string[]> = {};
+
       for (const [k, v] of Object.entries(upRes.headers)) {
         if (!HOP_BY_HOP.has(k.toLowerCase()) && v !== undefined) {
           outHeaders[k] = v;
         }
       }
+
       res.writeHead(upRes.statusCode ?? 502, outHeaders); // no content-length: Node streams it chunked
       const captured: Buffer[] = [];
+
       upRes.on("data", (c: Buffer) => {
         firstByteMs ??= performance.now() - t0;
         captured.push(c);
+
         if (!clientGone) {
           res.write(c);
         }
@@ -231,14 +254,18 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       );
     },
   );
+
   up.on("error", (err) => {
     if (clientGone) {
       record(null, "", []); // hung up before llama-server started replying
+
       return;
     }
+
     if (!res.headersSent) {
       res.writeHead(502, { "content-type": "application/json" });
     }
+
     res.end(
       JSON.stringify({
         error: { message: `relay: upstream ${upstream.origin} failed: ${err.message}` },
@@ -248,10 +275,12 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   up.end(body);
 
   let recorded = false;
+
   function record(status: number | null, contentType: string, captured: Buffer[]) {
     if (recorded || !isChat) {
       return;
     }
+
     recorded = true;
     const { reply, reasoning, timings, usage, provider } = replyText(
       Buffer.concat(captured).toString("utf8"),
@@ -272,6 +301,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       reply,
       reasoning,
     };
+
     appendFileSync(logPath, JSON.stringify(rec) + "\n");
   }
 }
@@ -281,6 +311,7 @@ createServer((req, res) => {
     if (!res.headersSent) {
       res.writeHead(500, { "content-type": "application/json" });
     }
+
     res.end(JSON.stringify({ error: { message: `relay: ${String(err)}` } }));
   });
 }).listen(Number(args.listen), "127.0.0.1", () => {
@@ -292,6 +323,7 @@ createServer((req, res) => {
     ]
       .filter((s) => s)
       .join(", ") || "none";
+
   console.log(
     `relay 127.0.0.1:${args.listen} -> ${upstream.origin} | log ${logPath} | max_tokens ${opts.maxTokens} | no-think ${opts.noThink} | shaping: ${on}`,
   );

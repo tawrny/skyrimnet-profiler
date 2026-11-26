@@ -57,6 +57,7 @@ const dialogue = (activity: string, time: string, history: string[]): ChatReques
 
 test("split keeps stable sections and moves volatile ones, with their owner, before the task", () => {
   const [stable, rest] = split(context("standing", "3 PM"))!;
+
   assert.match(stable, /## Lydia's Inventory/);
   assert.doesNotMatch(stable, /Physical Activity|Current Time/);
   assert.match(
@@ -68,6 +69,7 @@ test("split keeps stable sections and moves volatile ones, with their owner, bef
 
 test("moveStableToSystem puts stable context ahead of the history", () => {
   const r = dialogue("standing", "3 PM", ["Tawrny: hello"]);
+
   assert.ok(moveStableToSystem(r));
   assert.match(String(r.messages![0]!.content), /Bio\.\n\n# Setting\n## Lydia's Current State/);
   assert.doesNotMatch(String(r.messages!.at(-1)!.content), /Inventory/);
@@ -75,6 +77,7 @@ test("moveStableToSystem puts stable context ahead of the history", () => {
 
 test("trim lists actor names once and keeps each description's first sentence", () => {
   const t = trim(ACTIONS);
+
   assert.match(t, /\*\*Available Actions:\*\*\nNearby actors: Tawrny, Lydia\./);
   assert.match(t, /`Economy` — Category: money changing hands now\.\n/);
   assert.match(t, /Must be a name from the Nearby actors line above, exactly\./);
@@ -85,9 +88,11 @@ test("the catalogue moves entries to the system message and keeps live entries a
   const store: CatalogueStore = {};
   const r = dialogue("standing", "3 PM", []);
   const res = applyCatalogue(r, "Lydia", store, "npc");
+
   assert.deepEqual(res.added.sort(), ["Clean", "Economy"]);
   const system = String(r.messages![0]!.content);
   const last = String(r.messages!.at(-1)!.content);
+
   assert.match(system, new RegExp(`${CATALOGUE_HEADING}\\n`));
   assert.ok(system.indexOf("`Clean`") < system.indexOf("`Economy`")); // sorted
   assert.match(last, /Available now: `Economy`, `Clean`, `TriggerDialogueLine`\./);
@@ -100,14 +105,17 @@ test("a second turn with different targets and quest lines leaves the catalogue 
   const store: CatalogueStore = {};
   const a = dialogue("standing", "3 PM", []);
   const b = dialogue("sitting", "4 PM", ["Tawrny: hi"]);
+
   b.messages!.at(-1)!.content = String(b.messages!.at(-1)!.content)
     .replace("'Tawrny', 'Lydia'", "'Tawrny', 'Lydia', 'Hulda'")
     .replace("[0001] Rent a room.", "[0002] Buy a drink.");
   applyCatalogue(a, "Lydia", store, "npc");
   const res = applyCatalogue(b, "Lydia", store, "npc");
+
   assert.deepEqual(res, { applied: true, added: [], changed: [] });
   const sysA = String(a.messages![0]!.content);
   const sysB = String(b.messages![0]!.content);
+
   assert.equal(sysA, sysB);
 });
 
@@ -120,6 +128,7 @@ test("shape: thinking off for structured jobs, on for dialogue and pickers; max_
     messages: [{ role: "system", content: "Determine which NPC the player is addressing." }],
   };
   const store: CatalogueStore = {};
+
   shape(mood, DEFAULTS, store);
   shape(picker, DEFAULTS, store);
   assert.deepEqual(mood.chat_template_kwargs, { enable_thinking: false });
@@ -169,16 +178,20 @@ const sharedOpts = { ...DEFAULTS, catalogue: "shared" as const };
 
 const sharedBlock = (r: ChatRequest) => {
   const system = textOf(r.messages![0]!.content);
+
   return system.slice(0, system.indexOf(PROFILE_HEADING));
 };
+
 const lastText = (r: ChatRequest) => textOf(r.messages!.at(-1)!.content);
 
 test("shared catalogue: two NPCs get one identical opening block, without their names", () => {
   const store: CatalogueStore = {};
   const lydia = fullDialogue("Lydia", LYDIA_NEARBY);
   const guard = fullDialogue(GUARD, GUARD_NEARBY);
+
   shape(lydia, sharedOpts, store);
   const report = shape(guard, sharedOpts, store);
+
   assert.deepEqual(report.catalogue, { added: [], changed: [] });
   assert.equal(sharedBlock(lydia), sharedBlock(guard));
   assert.ok(sharedBlock(guard).startsWith(CATALOGUE_HEADING));
@@ -188,9 +201,11 @@ test("shared catalogue: two NPCs get one identical opening block, without their 
 
 test("shared catalogue: rules move to the opening block; the quest entry and overlay line stay at the end", () => {
   const r = fullDialogue(GUARD, GUARD_NEARBY);
+
   shape(r, sharedOpts, {});
   const block = sharedBlock(r);
   const last = lastText(r);
+
   assert.match(block, /\*\*Action Format:\*\*\n- `ACTION: ActionName`/);
   assert.match(
     block,
@@ -209,6 +224,7 @@ test("shared catalogue: changed rules are reported, so the relay saves them and 
   const store: CatalogueStore = {};
   const first = fullDialogue("Lydia", LYDIA_NEARBY);
   const reworded = fullDialogue("Lydia", LYDIA_NEARBY);
+
   reworded.messages!.at(-1)!.content = lastText(reworded).replace("if it fits", "if it truly fits");
   assert.deepEqual(shape(first, sharedOpts, store).catalogue?.added, [
     "Travel",
@@ -223,6 +239,7 @@ test("shared catalogue: changed rules are reported, so the relay saves them and 
 
 test("shared catalogue: without its own heading, the text before the action list stays where it is", () => {
   const r = fullDialogue("Lydia", LYDIA_NEARBY);
+
   r.messages!.at(-1)!.content = lastText(r).replace("## Actions Available\n", "");
   shape(r, sharedOpts, {});
   assert.doesNotMatch(sharedBlock(r), /Respond as|Action Format/);
@@ -234,6 +251,7 @@ test("shared catalogue: without its own heading, the text before the action list
 
 test("shared catalogue: the request still reads as the NPC's dialogue", () => {
   const r = fullDialogue(GUARD, GUARD_NEARBY);
+
   shape(r, sharedOpts, {});
   assert.equal(classify(r).id, "dialogue");
   assert.equal(speaker(r), GUARD);
@@ -241,16 +259,19 @@ test("shared catalogue: the request still reads as the NPC's dialogue", () => {
 
 test("actor lists holding a name with an apostrophe are listed once as nearby actors", () => {
   const t = trim(fullActions(GUARD, GUARD_NEARBY));
+
   assert.match(t, /Nearby actors: Tawrny, Dro'zamarak \[Mercenary\]\./);
   assert.doesNotMatch(t, /Valid Choices/);
 });
 
 test("anatomy spans cover the whole prompt text exactly", () => {
   const r = dialogue("standing", "3 PM", ["Tawrny: hello", "Lydia: hm"]);
+
   applyCatalogue(r, "Lydia", {}, "npc");
   moveStableToSystem(r);
   const spans = anatomy(r);
   const total = spans.reduce((n, s) => n + s.length, 0);
+
   assert.equal(total, promptText(r).length);
   assert.ok(spans.some((s) => s.kind === "catalogue"));
   assert.ok(spans.some((s) => s.kind === "history"));

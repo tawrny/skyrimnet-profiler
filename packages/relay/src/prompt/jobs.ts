@@ -80,6 +80,7 @@ export function firstText(request: ChatRequest): string {
 
 export function classify(request: ChatRequest): Job {
   const first = firstText(request);
+
   return JOBS.find((j) => j.match(first)) ?? OTHER;
 }
 

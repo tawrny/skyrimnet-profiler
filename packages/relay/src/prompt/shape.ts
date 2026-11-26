@@ -24,6 +24,7 @@ export type ShapeOptions = {
 
 export type CatalogueMode = "off" | CatalogueScope;
 export const CATALOGUE_MODES: readonly CatalogueMode[] = ["off", "npc", "shared"];
+
 export function isCatalogueMode(x: unknown): x is CatalogueMode {
   return CATALOGUE_MODES.some((m) => m === x);
 }
@@ -54,17 +55,16 @@ export function shape(
 ): ShapeReport {
   const job = classify(request);
   const asked = typeof request.max_tokens === "number" ? request.max_tokens : null;
+
   if (opts.maxTokens) {
     request.max_tokens = Math.min(asked ?? opts.maxTokens, opts.maxTokens);
   }
-  const stop =
-    request.stop == null
-      ? []
-      : typeof request.stop === "string"
-        ? [request.stop]
-        : [...request.stop];
+
+  const stop = asList(request.stop);
+
   request.stop = [...stop, ...opts.extraStop.filter((s) => !stop.includes(s))];
   const noThink = opts.noThink && job.noThink;
+
   if (noThink) {
     request.chat_template_kwargs = { ...request.chat_template_kwargs, enable_thinking: false };
   }
@@ -77,21 +77,36 @@ export function shape(
     catalogue: null,
     reordered: false,
   };
+
   if (job.id !== "dialogue") {
     return report;
   }
+
   const npc = speaker(request);
+
   if (opts.trim && opts.catalogue === "off") {
     report.trimmedChars = trimRequest(request);
   }
+
   if (opts.catalogue !== "off" && npc) {
     const r = applyCatalogue(request, npc, store, opts.catalogue, opts.trim);
+
     if (r.applied) {
       report.catalogue = { added: r.added, changed: r.changed };
     }
   }
+
   if (opts.reorder) {
     report.reordered = moveStableToSystem(request);
   }
+
   return report;
+}
+
+function asList(stop: string | string[] | undefined): string[] {
+  if (stop == null) {
+    return [];
+  }
+
+  return typeof stop === "string" ? [stop] : [...stop];
 }

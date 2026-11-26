@@ -8,6 +8,7 @@ export function CallList(props: {
   onSelect: (i: number) => void;
 }) {
   const max = Math.max(10, ...props.calls.map((c) => c.seconds));
+
   return (
     <ol className="calls">
       {props.calls.map((c) => (
