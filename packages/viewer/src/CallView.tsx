@@ -27,15 +27,29 @@ function AnatomyBar({ spans, total, shared }: { spans: Span[]; total: number; sh
             title={`${s.label} (${KIND_LABEL[s.kind]}): ${tok(s.length)} tok`}
           />
         ))}
-        {shared > 0 && <span className="reused" style={{ width: pct(shared) }} title={`reusable prefix: ${tok(shared)} tok`} />}
+        {shared > 0 && (
+          <span
+            className="reused"
+            style={{ width: pct(shared) }}
+            title={`reusable prefix: ${tok(shared)} tok`}
+          />
+        )}
       </div>
       <div className="legend">
         {(Object.keys(KIND_LABEL) as SpanKind[])
           .filter((k) => spans.some((s) => s.kind === k))
           .map((k) => (
-            <span key={k}><i className={`k-${k}`} />{KIND_LABEL[k]}</span>
+            <span key={k}>
+              <i className={`k-${k}`} />
+              {KIND_LABEL[k]}
+            </span>
           ))}
-        {shared > 0 && <span><i className="reused-key" />reusable from previous turn</span>}
+        {shared > 0 && (
+          <span>
+            <i className="reused-key" />
+            reusable from previous turn
+          </span>
+        )}
       </div>
     </div>
   );
@@ -59,26 +73,36 @@ export function CallView({ index, onOpen }: { index: number; onOpen: (i: number)
     <div className="detail">
       <h2>
         {call.jobLabel}
-        {call.npc && <> · {call.npc}</>} <small>{call.time} · {call.seconds.toFixed(1)} s · {call.thinking ? "thinking" : "no thinking"}</small>
+        {call.npc && <> · {call.npc}</>}{" "}
+        <small>
+          {call.time} · {call.seconds.toFixed(1)} s · {call.thinking ? "thinking" : "no thinking"}
+        </small>
       </h2>
 
-      <h3>Prompt anatomy <small>{tok(call.promptChars)} tok</small></h3>
+      <h3>
+        Prompt anatomy <small>{tok(call.promptChars)} tok</small>
+      </h3>
       <AnatomyBar spans={call.anatomy} total={call.promptChars} shared={call.sharedChars} />
       {call.previousIndex !== null ? (
         <p className="cache">
           Unchanged since this NPC's previous {call.jobLabel.toLowerCase()} call (
-          <a onClick={() => onOpen(call.previousIndex!)}>#{call.previousIndex}</a>): <b>{tok(call.sharedChars)} tok</b> reusable,{" "}
-          <b className="bad">{tok(reread)} tok</b> to re-read ({Math.round((100 * reread) / call.promptChars)}%).
+          <a onClick={() => onOpen(call.previousIndex!)}>#{call.previousIndex}</a>):{" "}
+          <b>{tok(call.sharedChars)} tok</b> reusable, <b className="bad">{tok(reread)} tok</b> to
+          re-read ({Math.round((100 * reread) / call.promptChars)}%).
         </p>
       ) : (
-        <p className="cache">No earlier call of this kind for this NPC: the whole prompt is read.</p>
+        <p className="cache">
+          No earlier call of this kind for this NPC: the whole prompt is read.
+        </p>
       )}
 
       <table className="kinds">
         <tbody>
           {[...byKind.entries()].map(([k, n]) => (
             <tr key={k}>
-              <td><i className={`k-${k}`} /> {KIND_LABEL[k]}</td>
+              <td>
+                <i className={`k-${k}`} /> {KIND_LABEL[k]}
+              </td>
               <td className="num">{tok(n)} tok</td>
               <td className="num">{Math.round((100 * n) / call.promptChars)}%</td>
             </tr>
@@ -100,10 +124,18 @@ export function CallView({ index, onOpen }: { index: number; onOpen: (i: number)
           <tbody>
             {call.anatomy.map((s, i) => (
               <tr key={i}>
-                <td><i className={`k-${s.kind}`} /></td>
+                <td>
+                  <i className={`k-${s.kind}`} />
+                </td>
                 <td>{s.label}</td>
                 <td className="num">{tok(s.length)}</td>
-                <td className="num">{s.start < call.sharedChars ? (s.start + s.length <= call.sharedChars ? "reused" : "partly") : "re-read"}</td>
+                <td className="num">
+                  {s.start < call.sharedChars
+                    ? s.start + s.length <= call.sharedChars
+                      ? "reused"
+                      : "partly"
+                    : "re-read"}
+                </td>
               </tr>
             ))}
           </tbody>

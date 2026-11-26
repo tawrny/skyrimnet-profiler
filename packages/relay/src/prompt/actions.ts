@@ -151,8 +151,18 @@ export function catalogueText(entries: Record<string, string>): string {
 
 /** The shared catalogue, which opens the system message: intro, format rules, entries, guidelines, then the
  * heading the NPC's own system message sits under. */
-export function sharedCatalogueText(entries: Record<string, string>, rules: Record<string, string>): string {
-  const parts = [CATALOGUE_HEADING, SHARED_INTRO, rules.format, ALL_ACTIONS, ...sortedEntries(entries), rules.guidelines];
+export function sharedCatalogueText(
+  entries: Record<string, string>,
+  rules: Record<string, string>,
+): string {
+  const parts = [
+    CATALOGUE_HEADING,
+    SHARED_INTRO,
+    rules.format,
+    ALL_ACTIONS,
+    ...sortedEntries(entries),
+    rules.guidelines,
+  ];
   return `${parts.filter((p) => p).join("\n")}\n\n${PROFILE_HEADING}\n`;
 }
 
@@ -254,7 +264,8 @@ export function applyCatalogue(
     const format = deName(rules.format, npc);
     const guidelines = deName(rules.guidelines, npc);
     if (rulesBook.format === undefined) added.push(RULES_BOOK);
-    else if (rulesBook.format !== format || rulesBook.guidelines !== guidelines) changed.push(RULES_BOOK);
+    else if (rulesBook.format !== format || rulesBook.guidelines !== guidelines)
+      changed.push(RULES_BOOK);
     rulesBook.format = format;
     rulesBook.guidelines = guidelines;
     last.content = text.slice(0, rules.start) + replacement + "\n" + text.slice(rules.end);

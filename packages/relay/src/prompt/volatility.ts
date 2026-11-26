@@ -7,7 +7,12 @@ import { classify, speaker } from "./jobs.ts";
 
 export type SectionStat = { section: string; pairs: number; changed: number; avgTokens: number };
 
-const OWNED = new Set(["Physical Activity", "Worn Equipment", "Physical Appearance", "How You Feel"]);
+const OWNED = new Set([
+  "Physical Activity",
+  "Worn Equipment",
+  "Physical Appearance",
+  "How You Feel",
+]);
 
 /** Sections of a dialogue prompt's final message, keyed by a name-neutral title ("<name>'s Inventory"). */
 export function contextSections(request: ChatRequest): Map<string, string> {
@@ -16,7 +21,8 @@ export function contextSections(request: ChatRequest): Map<string, string> {
   let owner = "";
   for (const c of chunks(textOf(msgs[msgs.length - 1]?.content))) {
     if (!c.title) continue;
-    if (c.level === 2 && /^.+'s (Current State|Character Profile)/.test(c.title)) owner = c.title.split("'s")[0]!;
+    if (c.level === 2 && /^.+'s (Current State|Character Profile)/.test(c.title))
+      owner = c.title.split("'s")[0]!;
     const title = c.title.replace(/^.+?'s /, "<name>'s ");
     const who = OWNED.has(c.title) ? (owner === speaker(request) ? " (NPC)" : " (other)") : "";
     out.set(title + who, c.body);
@@ -47,6 +53,11 @@ export function volatility(requests: Iterable<ChatRequest>): SectionStat[] {
     last.set(npc, now);
   }
   return [...stats.entries()]
-    .map(([section, s]) => ({ section, pairs: s.pairs, changed: s.changed, avgTokens: Math.round(s.tokens / s.pairs) }))
+    .map(([section, s]) => ({
+      section,
+      pairs: s.pairs,
+      changed: s.changed,
+      avgTokens: Math.round(s.tokens / s.pairs),
+    }))
     .sort((a, b) => a.changed / a.pairs - b.changed / b.pairs || b.avgTokens - a.avgTokens);
 }

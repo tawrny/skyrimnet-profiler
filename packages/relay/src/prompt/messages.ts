@@ -1,7 +1,11 @@
 // OpenAI-style chat request shapes as SkyrimNet sends them, and helpers to read and replace message text.
 
 export type ContentPart = { type?: string; text?: string; [key: string]: unknown };
-export type Message = { role: string; content: string | ContentPart[] | null; [key: string]: unknown };
+export type Message = {
+  role: string;
+  content: string | ContentPart[] | null;
+  [key: string]: unknown;
+};
 export type ChatRequest = {
   messages?: Message[];
   max_tokens?: number;

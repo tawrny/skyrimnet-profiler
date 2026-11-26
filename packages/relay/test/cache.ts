@@ -9,7 +9,11 @@ import { approxTokens, reach, seen, type ChatRequest, type Seen } from "../src/p
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
-  options: { window: { type: "string", default: "5" }, top: { type: "string", default: "6" }, since: { type: "string" } },
+  options: {
+    window: { type: "string", default: "5" },
+    top: { type: "string", default: "6" },
+    since: { type: "string" },
+  },
 });
 const windowMs = Number(values.window) * 60_000;
 const top = Number(values.top);
@@ -20,24 +24,45 @@ type Rec = {
   provider?: string;
   usage?: { prompt_tokens?: number; prompt_tokens_details?: { cached_tokens?: number } } | null;
 };
-type Group = { calls: number; chars: number; shared: number; tokens: number; cached: number; breaks: Map<string, number> };
+type Group = {
+  calls: number;
+  chars: number;
+  shared: number;
+  tokens: number;
+  cached: number;
+  breaks: Map<string, number>;
+};
 
 const groups = new Map<string, Group>();
 const recent: { at: number; seen: Seen }[] = [];
 for (const line of readFileSync(positionals[0]!, "utf8").split("\n")) {
   if (!line.trim()) continue;
   let rec: Rec;
-  try { rec = JSON.parse(line); } catch { continue; }
+  try {
+    rec = JSON.parse(line);
+  } catch {
+    continue;
+  }
   if (!rec.request?.messages) continue;
   const at = Date.parse(rec.time.replace(" ", "T"));
   while (recent.length && at - recent[0]!.at > windowMs) recent.shift();
-  const r = reach(rec.request, recent.map((e) => e.seen));
+  const r = reach(
+    rec.request,
+    recent.map((e) => e.seen),
+  );
   const me = seen(rec.request);
   recent.push({ at, seen: me });
   if (values.since && rec.time < values.since) continue;
 
   const key = `${me.job} | ${rec.provider ?? "provider not logged"}`;
-  const g = groups.get(key) ?? { calls: 0, chars: 0, shared: 0, tokens: 0, cached: 0, breaks: new Map() };
+  const g = groups.get(key) ?? {
+    calls: 0,
+    chars: 0,
+    shared: 0,
+    tokens: 0,
+    cached: 0,
+    breaks: new Map(),
+  };
   g.calls++;
   g.chars += r.promptChars;
   g.shared += r.sharedChars;
@@ -49,14 +74,20 @@ for (const line of readFileSync(positionals[0]!, "utf8").split("\n")) {
 }
 
 const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)}%` : "-").padStart(4);
-console.log(`window ${values.window} min. reachable = prefix an ideal cache could serve; cached = what the provider reported.\n`);
+console.log(
+  `window ${values.window} min. reachable = prefix an ideal cache could serve; cached = what the provider reported.\n`,
+);
 for (const [key, g] of [...groups].sort((a, b) => b[1].chars - a[1].chars)) {
   console.log(
     `${key}: ${g.calls} calls, ~${approxTokens(g.chars / g.calls)} tok each | reachable ${pct(g.shared, g.chars)}` +
-    ` | cached ${g.tokens ? pct(g.cached, g.tokens) : "   -"}`,
+      ` | cached ${g.tokens ? pct(g.cached, g.tokens) : "   -"}`,
   );
   const lost = g.chars - g.shared;
   for (const [where, chars] of [...g.breaks].sort((a, b) => b[1] - a[1]).slice(0, top)) {
-    console.log(`    ${pct(chars, lost)} of re-read  ~${approxTokens(chars / g.calls).toString().padStart(5)} tok/call  breaks in ${where}`);
+    console.log(
+      `    ${pct(chars, lost)} of re-read  ~${approxTokens(chars / g.calls)
+        .toString()
+        .padStart(5)} tok/call  breaks in ${where}`,
+    );
   }
 }

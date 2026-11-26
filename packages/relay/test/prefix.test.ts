@@ -6,7 +6,18 @@ const dialogue = (npc: string, time: string): ChatRequest => ({
   messages: [
     { role: "system", content: `You are ${npc}, a Female Nord in Skyrim.\nBio.` },
     { role: "user", content: "Tawrny: hello" },
-    { role: "user", content: ["# Setting", "## Inventory", "- Iron Sword", "## Current Time", time, "## Task", "Reply."].join("\n") },
+    {
+      role: "user",
+      content: [
+        "# Setting",
+        "## Inventory",
+        "- Iron Sword",
+        "## Current Time",
+        time,
+        "## Task",
+        "Reply.",
+      ].join("\n"),
+    },
   ],
 });
 const mood = (npc: string): ChatRequest => ({

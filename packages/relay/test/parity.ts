@@ -29,5 +29,7 @@ process.exitCode = fails.trim || fails.reorder ? 1 : 0;
 function firstDiff(what: string, py: string, ts: string): void {
   let i = 0;
   while (i < py.length && py[i] === ts[i]) i++;
-  console.log(`${what}: first difference at ${i}\n  python: ${JSON.stringify(py.slice(i - 60, i + 80))}\n  ts:     ${JSON.stringify(ts.slice(i - 60, i + 80))}`);
+  console.log(
+    `${what}: first difference at ${i}\n  python: ${JSON.stringify(py.slice(i - 60, i + 80))}\n  ts:     ${JSON.stringify(ts.slice(i - 60, i + 80))}`,
+  );
 }

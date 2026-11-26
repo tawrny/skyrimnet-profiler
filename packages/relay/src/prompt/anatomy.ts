@@ -5,7 +5,15 @@ import { CATALOGUE_HEADING } from "./actions.ts";
 import { textOf, type ChatRequest } from "./messages.ts";
 import { ANCHOR, chunks, SECTIONS_BY_VOLATILITY, VOLATILE_SUFFIXES } from "./sections.ts";
 
-export type SpanKind = "system" | "catalogue" | "history" | "stable" | "volatile" | "task" | "actions" | "other";
+export type SpanKind =
+  | "system"
+  | "catalogue"
+  | "history"
+  | "stable"
+  | "volatile"
+  | "task"
+  | "actions"
+  | "other";
 export type Span = { kind: SpanKind; label: string; start: number; length: number };
 
 const volatileTitle = (title: string) => {

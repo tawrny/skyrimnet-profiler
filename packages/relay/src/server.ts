@@ -8,12 +8,23 @@
 //                      [--api 8091] [--max-tokens 1024] [--no-no-think] [--trim] [--catalogue off|npc|shared]
 //                      [--reorder]
 
-import { createServer, request as httpRequest, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  createServer,
+  request as httpRequest,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { request as httpsRequest } from "node:https";
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import {
-  CATALOGUE_MODES, DEFAULTS, isCatalogueMode, shape, type CatalogueStore, type ChatRequest, type ShapeReport,
+  CATALOGUE_MODES,
+  DEFAULTS,
+  isCatalogueMode,
+  shape,
+  type CatalogueStore,
+  type ChatRequest,
+  type ShapeReport,
 } from "./prompt/index.ts";
 import { startApi } from "./api.ts";
 
@@ -32,7 +43,8 @@ const { values: args } = parseArgs({
   },
 });
 
-if (!isCatalogueMode(args.catalogue)) throw new Error(`--catalogue must be one of ${CATALOGUE_MODES.join(", ")}`);
+if (!isCatalogueMode(args.catalogue))
+  throw new Error(`--catalogue must be one of ${CATALOGUE_MODES.join(", ")}`);
 const opts = {
   ...DEFAULTS,
   maxTokens: Number(args["max-tokens"]),
@@ -45,11 +57,21 @@ const upstream = new URL(args.upstream!);
 const sendUpstream = upstream.protocol === "https:" ? httpsRequest : httpRequest;
 const logPath = args.log!;
 const cataloguePath = args["catalogue-file"]!;
-const store: CatalogueStore = existsSync(cataloguePath) ? JSON.parse(readFileSync(cataloguePath, "utf8")) : {};
+const store: CatalogueStore = existsSync(cataloguePath)
+  ? JSON.parse(readFileSync(cataloguePath, "utf8"))
+  : {};
 
 const HOP_BY_HOP = new Set([
-  "connection", "keep-alive", "transfer-encoding", "te", "trailer", "upgrade",
-  "proxy-authorization", "proxy-authenticate", "content-length", "host",
+  "connection",
+  "keep-alive",
+  "transfer-encoding",
+  "te",
+  "trailer",
+  "upgrade",
+  "proxy-authorization",
+  "proxy-authenticate",
+  "content-length",
+  "host",
 ]);
 
 function readBody(req: IncomingMessage): Promise<Buffer> {
@@ -78,7 +100,13 @@ interface Usage {
   cost?: number;
 }
 
-type ReplyParts = { reply: string; reasoning: string; timings: Timings | null; usage: Usage | null; provider: string | null };
+type ReplyParts = {
+  reply: string;
+  reasoning: string;
+  timings: Timings | null;
+  usage: Usage | null;
+  provider: string | null;
+};
 
 /** The assistant text, reasoning, llama-server timings, and OpenRouter usage and serving provider, from a JSON or
  * SSE reply body. */
@@ -161,7 +189,14 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   });
 
   const up = sendUpstream(
-    { hostname: upstream.hostname, port: upstream.port || undefined, path: req.url, method: req.method, headers, timeout: 600_000 },
+    {
+      hostname: upstream.hostname,
+      port: upstream.port || undefined,
+      path: req.url,
+      method: req.method,
+      headers,
+      timeout: 600_000,
+    },
     (upRes) => {
       const outHeaders: Record<string, string | string[]> = {};
       for (const [k, v] of Object.entries(upRes.headers)) {
@@ -178,7 +213,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
         if (!clientGone) res.end();
       });
       // "close" follows both a finished reply and one cut short by the client hanging up.
-      upRes.on("close", () => record(upRes.statusCode ?? null, upRes.headers["content-type"] ?? "", captured));
+      upRes.on("close", () =>
+        record(upRes.statusCode ?? null, upRes.headers["content-type"] ?? "", captured),
+      );
     },
   );
   up.on("error", (err) => {
@@ -187,7 +224,11 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       return;
     }
     if (!res.headersSent) res.writeHead(502, { "content-type": "application/json" });
-    res.end(JSON.stringify({ error: { message: `relay: upstream ${upstream.origin} failed: ${err.message}` } }));
+    res.end(
+      JSON.stringify({
+        error: { message: `relay: upstream ${upstream.origin} failed: ${err.message}` },
+      }),
+    );
   });
   up.end(body);
 
@@ -195,7 +236,10 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   function record(status: number | null, contentType: string, captured: Buffer[]) {
     if (recorded || !isChat) return;
     recorded = true;
-    const { reply, reasoning, timings, usage, provider } = replyText(Buffer.concat(captured).toString("utf8"), contentType.includes("text/event-stream"));
+    const { reply, reasoning, timings, usage, provider } = replyText(
+      Buffer.concat(captured).toString("utf8"),
+      contentType.includes("text/event-stream"),
+    );
     const rec = {
       time: stamp(),
       status,
@@ -221,10 +265,17 @@ createServer((req, res) => {
     res.end(JSON.stringify({ error: { message: `relay: ${String(err)}` } }));
   });
 }).listen(Number(args.listen), "127.0.0.1", () => {
-  const on = [opts.trim && "trim", opts.catalogue !== "off" && `catalogue ${opts.catalogue}`, opts.reorder && "reorder"]
-    .filter((s) => s)
-    .join(", ") || "none";
-  console.log(`relay 127.0.0.1:${args.listen} -> ${upstream.origin} | log ${logPath} | max_tokens ${opts.maxTokens} | no-think ${opts.noThink} | shaping: ${on}`);
+  const on =
+    [
+      opts.trim && "trim",
+      opts.catalogue !== "off" && `catalogue ${opts.catalogue}`,
+      opts.reorder && "reorder",
+    ]
+      .filter((s) => s)
+      .join(", ") || "none";
+  console.log(
+    `relay 127.0.0.1:${args.listen} -> ${upstream.origin} | log ${logPath} | max_tokens ${opts.maxTokens} | no-think ${opts.noThink} | shaping: ${on}`,
+  );
 });
 
 startApi(Number(args.api), logPath, store);

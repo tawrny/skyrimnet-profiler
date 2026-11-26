@@ -1,8 +1,8 @@
 {
   "name": "@skyrimnet/viewer",
   "private": true,
-  "type": "module",
   "description": "Local viewer for SkyrimNet's LLM calls: timeline, prompt anatomy and cache reuse, section volatility",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

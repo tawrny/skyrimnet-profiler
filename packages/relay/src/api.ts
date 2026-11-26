@@ -9,8 +9,15 @@
 import { createServer, type ServerResponse } from "node:http";
 import { closeSync, existsSync, openSync, readSync, statSync } from "node:fs";
 import {
-  anatomy, approxTokens, classify, promptText, sharedPrefix, speaker, volatility,
-  type CatalogueStore, type ChatRequest,
+  anatomy,
+  approxTokens,
+  classify,
+  promptText,
+  sharedPrefix,
+  speaker,
+  volatility,
+  type CatalogueStore,
+  type ChatRequest,
 } from "./prompt/index.ts";
 
 type Rec = {
@@ -37,7 +44,11 @@ class Log {
   refresh(): void {
     if (!existsSync(this.path)) return;
     const size = statSync(this.path).size;
-    if (size < this.offset) { this.records = []; this.offset = 0; this.rest = ""; } // log was replaced
+    if (size < this.offset) {
+      this.records = [];
+      this.offset = 0;
+      this.rest = "";
+    } // log was replaced
     if (size === this.offset) return;
     const fd = openSync(this.path, "r");
     const buf = Buffer.alloc(size - this.offset);
@@ -70,7 +81,9 @@ function summary(r: Rec, index: number) {
     jobLabel: job.label,
     npc: speaker(req),
     promptTokens: approxTokens(text.length),
-    thinking: (req.chat_template_kwargs as { enable_thinking?: boolean } | undefined)?.enable_thinking !== false,
+    thinking:
+      (req.chat_template_kwargs as { enable_thinking?: boolean } | undefined)?.enable_thinking !==
+      false,
     gaveUp: !!r.client_gave_up,
     reply: (r.reply ?? "").slice(0, 160),
   };
@@ -92,7 +105,8 @@ export function startApi(port: number, logPath: string, store: CatalogueStore): 
         const offset = Number(url.searchParams.get("offset") ?? 0);
         const limit = Math.min(Number(url.searchParams.get("limit") ?? 200), 2000);
         const out = [];
-        for (let i = recs.length - 1 - offset; i >= 0 && out.length < limit; i--) out.push(summary(recs[i]!, i));
+        for (let i = recs.length - 1 - offset; i >= 0 && out.length < limit; i--)
+          out.push(summary(recs[i]!, i));
         return send(res, 200, { total: recs.length, calls: out });
       }
       const one = /^\/api\/calls\/(\d+)$/.exec(url.pathname);
@@ -105,10 +119,14 @@ export function startApi(port: number, logPath: string, store: CatalogueStore): 
         let prevIndex: number | null = null;
         for (let j = i - 1; j >= 0 && npc; j--) {
           const p = recs[j]!;
-          if (speaker(p.request) === npc && classify(p.request).id === job) { prevIndex = j; break; }
+          if (speaker(p.request) === npc && classify(p.request).id === job) {
+            prevIndex = j;
+            break;
+          }
         }
         const text = promptText(r.request);
-        const shared = prevIndex === null ? 0 : sharedPrefix(text, promptText(recs[prevIndex]!.request));
+        const shared =
+          prevIndex === null ? 0 : sharedPrefix(text, promptText(recs[prevIndex]!.request));
         return send(res, 200, {
           ...summary(r, i),
           request: r.request,

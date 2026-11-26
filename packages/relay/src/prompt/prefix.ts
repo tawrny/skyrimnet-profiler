@@ -36,9 +36,19 @@ export function reach(request: ChatRequest, earlier: readonly Seen[]): Reach {
     const n = sharedPrefix(me.text, e.text);
     if (n <= sharedChars) continue;
     sharedChars = n;
-    match = e.job !== me.job ? "other job" : me.npc !== null && e.npc === me.npc ? "same NPC" : "same job";
+    match =
+      e.job !== me.job
+        ? "other job"
+        : me.npc !== null && e.npc === me.npc
+          ? "same NPC"
+          : "same job";
   }
-  return { promptChars: me.text.length, sharedChars, match, breaksIn: breakLabel(request, sharedChars, me.text.length) };
+  return {
+    promptChars: me.text.length,
+    sharedChars,
+    match,
+    breaksIn: breakLabel(request, sharedChars, me.text.length),
+  };
 }
 
 function breakLabel(request: ChatRequest, at: number, length: number): string {

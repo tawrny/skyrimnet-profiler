@@ -1,8 +1,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  anatomy, applyCatalogue, CATALOGUE_HEADING, classify, DEFAULTS, moveStableToSystem, PROFILE_HEADING, promptText, RULES_BOOK,
-  shape, speaker, split, textOf, trim, type CatalogueStore, type ChatRequest,
+  anatomy,
+  applyCatalogue,
+  CATALOGUE_HEADING,
+  classify,
+  DEFAULTS,
+  moveStableToSystem,
+  PROFILE_HEADING,
+  promptText,
+  RULES_BOOK,
+  shape,
+  speaker,
+  split,
+  textOf,
+  trim,
+  type CatalogueStore,
+  type ChatRequest,
 } from "../src/prompt/index.ts";
 
 const ACTIONS = [
@@ -10,7 +24,7 @@ const ACTIONS = [
   "**Available Actions:**",
   "- `Economy` — Category: money changing hands now. Not here: unpriced hand-overs (Items).",
   "- `Clean` PARAMS: {\"target\":\"Who. Valid Choices: 'Tawrny', 'Lydia'. Choose one of these actor names EXACTLY.\"} — Cleans someone. Only when messy.",
-  "- `TriggerDialogueLine` PARAMS: {\"form_id\":\"code\"} —",
+  '- `TriggerDialogueLine` PARAMS: {"form_id":"code"} —',
   "The exchanges below are actions Lydia can trigger right now: [0001] Rent a room.",
   "",
   "**Guidelines:**",
@@ -45,7 +59,10 @@ test("split keeps stable sections and moves volatile ones, with their owner, bef
   const [stable, rest] = split(context("standing", "3 PM"))!;
   assert.match(stable, /## Lydia's Inventory/);
   assert.doesNotMatch(stable, /Physical Activity|Current Time/);
-  assert.match(rest, /^## Physical Activity \(Lydia, you\)\n- Lydia is standing\.\n## Current Time/);
+  assert.match(
+    rest,
+    /^## Physical Activity \(Lydia, you\)\n- Lydia is standing\.\n## Current Time/,
+  );
   assert.ok(rest.indexOf("## Current Time") < rest.indexOf("## Task"));
 });
 
@@ -95,8 +112,13 @@ test("a second turn with different targets and quest lines leaves the catalogue 
 });
 
 test("shape: thinking off for structured jobs, on for dialogue and pickers; max_tokens capped", () => {
-  const mood: ChatRequest = { messages: [{ role: "system", content: "You are an AI mood analyzer for Skyrim." }], max_tokens: 4096 };
-  const picker: ChatRequest = { messages: [{ role: "system", content: "Determine which NPC the player is addressing." }] };
+  const mood: ChatRequest = {
+    messages: [{ role: "system", content: "You are an AI mood analyzer for Skyrim." }],
+    max_tokens: 4096,
+  };
+  const picker: ChatRequest = {
+    messages: [{ role: "system", content: "Determine which NPC the player is addressing." }],
+  };
   const store: CatalogueStore = {};
   shape(mood, DEFAULTS, store);
   shape(picker, DEFAULTS, store);
@@ -119,7 +141,7 @@ const fullActions = (npc: string, nearby: string) =>
     "**Available Actions:**",
     `- \`Travel\` — SELECT THIS when ${npc} decides to: go somewhere.`,
     `- \`Clean\` PARAMS: {"target":"Who. Valid Choices: ${nearby}. Choose one of these actor names EXACTLY."} — Cleans someone.`,
-    "- `TriggerDialogueLine` PARAMS: {\"form_id\":\"code\"} —",
+    '- `TriggerDialogueLine` PARAMS: {"form_id":"code"} —',
     `The exchanges below are actions ${npc} can trigger right now: [0001] Rent a room.`,
     "",
     "**Guidelines:**",
@@ -130,8 +152,14 @@ const fullActions = (npc: string, nearby: string) =>
 
 const fullDialogue = (npc: string, nearby: string): ChatRequest => ({
   messages: [
-    { role: "system", content: [{ type: "text", text: `You are ${npc}, a Male Nord in Skyrim.\nBio.` }] },
-    { role: "user", content: `# Setting\n## Task\nRespond as ${npc}.\n${fullActions(npc, nearby)}` },
+    {
+      role: "system",
+      content: [{ type: "text", text: `You are ${npc}, a Male Nord in Skyrim.\nBio.` }],
+    },
+    {
+      role: "user",
+      content: `# Setting\n## Task\nRespond as ${npc}.\n${fullActions(npc, nearby)}`,
+    },
   ],
 });
 
@@ -164,9 +192,15 @@ test("shared catalogue: rules move to the opening block; the quest entry and ove
   const block = sharedBlock(r);
   const last = lastText(r);
   assert.match(block, /\*\*Action Format:\*\*\n- `ACTION: ActionName`/);
-  assert.match(block, /\*\*Guidelines:\*\*\n- Only use an action if it fits\n- You can initiate actions unprompted/);
+  assert.match(
+    block,
+    /\*\*Guidelines:\*\*\n- Only use an action if it fits\n- You can initiate actions unprompted/,
+  );
   assert.doesNotMatch(last, /Action Format|Guidelines|Only use an action/);
-  assert.match(last, /## Actions Available\n\*\*Available Actions:\*\*\nAvailable now: `Travel`, `Clean`, `TriggerDialogueLine`\./);
+  assert.match(
+    last,
+    /## Actions Available\n\*\*Available Actions:\*\*\nAvailable now: `Travel`, `Clean`, `TriggerDialogueLine`\./,
+  );
   assert.match(last, /Jomarr \[Whiterun Guard\] can trigger right now: \[0001\]/);
   assert.match(last, /\n\nActions you can take now: `Travel`, `Clean`\.$/);
 });
@@ -176,8 +210,15 @@ test("shared catalogue: changed rules are reported, so the relay saves them and 
   const first = fullDialogue("Lydia", LYDIA_NEARBY);
   const reworded = fullDialogue("Lydia", LYDIA_NEARBY);
   reworded.messages!.at(-1)!.content = lastText(reworded).replace("if it fits", "if it truly fits");
-  assert.deepEqual(shape(first, sharedOpts, store).catalogue?.added, ["Travel", "Clean", RULES_BOOK]);
-  assert.deepEqual(shape(reworded, sharedOpts, store).catalogue, { added: [], changed: [RULES_BOOK] });
+  assert.deepEqual(shape(first, sharedOpts, store).catalogue?.added, [
+    "Travel",
+    "Clean",
+    RULES_BOOK,
+  ]);
+  assert.deepEqual(shape(reworded, sharedOpts, store).catalogue, {
+    added: [],
+    changed: [RULES_BOOK],
+  });
 });
 
 test("shared catalogue: without its own heading, the text before the action list stays where it is", () => {
@@ -185,7 +226,10 @@ test("shared catalogue: without its own heading, the text before the action list
   r.messages!.at(-1)!.content = lastText(r).replace("## Actions Available\n", "");
   shape(r, sharedOpts, {});
   assert.doesNotMatch(sharedBlock(r), /Respond as|Action Format/);
-  assert.match(lastText(r), /Respond as Lydia\.\nAfter your dialogue, you may optionally perform ONE action/);
+  assert.match(
+    lastText(r),
+    /Respond as Lydia\.\nAfter your dialogue, you may optionally perform ONE action/,
+  );
 });
 
 test("shared catalogue: the request still reads as the NPC's dialogue", () => {

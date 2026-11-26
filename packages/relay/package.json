@@ -1,8 +1,8 @@
 {
   "name": "@skyrimnet/relay",
   "private": true,
-  "type": "module",
   "description": "Logging relay between SkyrimNet and a local model server, with prompt shaping for caching",
+  "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./prompt": "./src/prompt/index.ts"

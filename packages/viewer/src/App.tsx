@@ -43,21 +43,39 @@ export function App() {
       <header>
         <h1>SkyrimNet Calls</h1>
         <nav>
-          <button className={tab === "calls" ? "on" : ""} onClick={() => setTab("calls")}>Calls</button>
-          <button className={tab === "volatility" ? "on" : ""} onClick={() => setTab("volatility")}>Section volatility</button>
+          <button className={tab === "calls" ? "on" : ""} onClick={() => setTab("calls")}>
+            Calls
+          </button>
+          <button className={tab === "volatility" ? "on" : ""} onClick={() => setTab("volatility")}>
+            Section volatility
+          </button>
         </nav>
-        <span className="meta">{error ? <span className="err">relay API unreachable: {error}</span> : `${total} calls logged`}</span>
+        <span className="meta">
+          {error ? (
+            <span className="err">relay API unreachable: {error}</span>
+          ) : (
+            `${total} calls logged`
+          )}
+        </span>
       </header>
       {tab === "calls" ? (
         <main className="split">
           <aside>
             <select value={job} onChange={(e) => setJob(e.target.value)}>
               <option value="all">All jobs</option>
-              {jobs.map((j) => <option key={j}>{j}</option>)}
+              {jobs.map((j) => (
+                <option key={j}>{j}</option>
+              ))}
             </select>
             <CallList calls={shown} selected={selected} onSelect={setSelected} />
           </aside>
-          <section>{selected === null ? <p className="hint">Pick a call to see its prompt anatomy.</p> : <CallView index={selected} onOpen={setSelected} />}</section>
+          <section>
+            {selected === null ? (
+              <p className="hint">Pick a call to see its prompt anatomy.</p>
+            ) : (
+              <CallView index={selected} onOpen={setSelected} />
+            )}
+          </section>
         </main>
       ) : (
         <main>

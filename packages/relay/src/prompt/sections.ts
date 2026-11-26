@@ -34,10 +34,16 @@ export function chunks(text: string): Chunk[] {
   if (marks.length === 0) return [{ heading: null, level: 0, title: null, body: text }];
   const out: Chunk[] = [];
   const first = marks[0]!;
-  if (first.index > 0) out.push({ heading: null, level: 0, title: null, body: text.slice(0, first.index) });
+  if (first.index > 0)
+    out.push({ heading: null, level: 0, title: null, body: text.slice(0, first.index) });
   marks.forEach((m, i) => {
     const end = i + 1 < marks.length ? marks[i + 1]!.index : text.length;
-    out.push({ heading: m[0], level: m[1]!.length, title: m[2]!.trim(), body: text.slice(m.index + m[0].length, end) });
+    out.push({
+      heading: m[0],
+      level: m[1]!.length,
+      title: m[2]!.trim(),
+      body: text.slice(m.index + m[0].length, end),
+    });
   });
   return out;
 }
@@ -74,7 +80,11 @@ export function split(text: string): [string, string] | null {
   }
   const order = [MEMORIES, ...SECTIONS_BY_VOLATILITY];
   const rest =
-    order.flatMap((k) => moved.get(k) ?? []).join("") + all.slice(at).map((c) => (c.heading ?? "") + c.body).join("");
+    order.flatMap((k) => moved.get(k) ?? []).join("") +
+    all
+      .slice(at)
+      .map((c) => (c.heading ?? "") + c.body)
+      .join("");
   return [stable.join(""), rest];
 }
 
@@ -86,7 +96,14 @@ export function moveStableToSystem(request: ChatRequest): boolean {
   const msgs = request.messages ?? [];
   const system = msgs[0];
   const last = msgs[msgs.length - 1];
-  if (msgs.length < 2 || !system || !last || system.role !== "system" || typeof last.content !== "string") return false;
+  if (
+    msgs.length < 2 ||
+    !system ||
+    !last ||
+    system.role !== "system" ||
+    typeof last.content !== "string"
+  )
+    return false;
   const parts = split(last.content);
   if (!parts || !parts[0].trim()) return false;
   const [stable, rest] = parts;

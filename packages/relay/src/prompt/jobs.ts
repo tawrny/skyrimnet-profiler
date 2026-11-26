@@ -18,16 +18,58 @@ const starts = (prefix: string) => (first: string) => first.startsWith(prefix);
 // ("player>Belethor") or picked someone else. Dialogue plans in its reply without thinking.
 export const JOBS: readonly Job[] = [
   { id: "mood", label: "Mood", noThink: true, match: starts("You are an AI mood analyzer") },
-  { id: "action", label: "Action selection", noThink: true, match: starts("You select the single most appropriate action") },
-  { id: "search", label: "Memory search query", noThink: true, match: starts("You are a memory search query generator") },
-  { id: "banter", label: "Banter director", noThink: true, match: starts("You are an ambient banter director") },
+  {
+    id: "action",
+    label: "Action selection",
+    noThink: true,
+    match: starts("You select the single most appropriate action"),
+  },
+  {
+    id: "search",
+    label: "Memory search query",
+    noThink: true,
+    match: starts("You are a memory search query generator"),
+  },
+  {
+    id: "banter",
+    label: "Banter director",
+    noThink: true,
+    match: starts("You are an ambient banter director"),
+  },
   { id: "social", label: "Social Life DM", noThink: true, match: starts("# NPC Social Life") },
-  { id: "picker", label: "Target picker", noThink: false, match: starts("Determine which NPC the player") },
+  {
+    id: "picker",
+    label: "Target picker",
+    noThink: false,
+    match: starts("Determine which NPC the player"),
+  },
   { id: "speaker", label: "Speaker selector", noThink: false, match: starts("## Task") },
-  { id: "memory", label: "Memory writing", noThink: false, match: starts("You are an AI assistant that helps create memories") },
-  { id: "vision", label: "OmniSight", noThink: false, match: (f) => f.startsWith("You are describing what is currently visible") || f.startsWith("Write the description of the place in this image") },
-  { id: "stance", label: "Stance assessment", noThink: false, match: starts("You are an internal stance-assessment") },
-  { id: "dialogue", label: "Dialogue", noThink: false, match: (f) => /^You are .+?, an? .+ in Skyrim\./.test(f) },
+  {
+    id: "memory",
+    label: "Memory writing",
+    noThink: false,
+    match: starts("You are an AI assistant that helps create memories"),
+  },
+  {
+    id: "vision",
+    label: "OmniSight",
+    noThink: false,
+    match: (f) =>
+      f.startsWith("You are describing what is currently visible") ||
+      f.startsWith("Write the description of the place in this image"),
+  },
+  {
+    id: "stance",
+    label: "Stance assessment",
+    noThink: false,
+    match: starts("You are an internal stance-assessment"),
+  },
+  {
+    id: "dialogue",
+    label: "Dialogue",
+    noThink: false,
+    match: (f) => /^You are .+?, an? .+ in Skyrim\./.test(f),
+  },
 ];
 const OTHER: Job = { id: "other", label: "Other", noThink: false, match: () => true };
 

@@ -1,7 +1,12 @@
 // The relay's request shaping, in order: generation cap and stop sequences, thinking per job, then (each
 // switchable) the action trim, the action catalogue, and moving stable context ahead of the history.
 
-import { applyCatalogue, trimRequest, type CatalogueScope, type CatalogueStore } from "./actions.ts";
+import {
+  applyCatalogue,
+  trimRequest,
+  type CatalogueScope,
+  type CatalogueStore,
+} from "./actions.ts";
 import { classify, speaker } from "./jobs.ts";
 import type { ChatRequest } from "./messages.ts";
 import { moveStableToSystem } from "./sections.ts";
@@ -42,16 +47,33 @@ export type ShapeReport = {
 };
 
 /** Shape a request in place; store is the per-NPC action catalogue (mutated when the catalogue is on). */
-export function shape(request: ChatRequest, opts: ShapeOptions, store: CatalogueStore): ShapeReport {
+export function shape(
+  request: ChatRequest,
+  opts: ShapeOptions,
+  store: CatalogueStore,
+): ShapeReport {
   const job = classify(request);
   const asked = typeof request.max_tokens === "number" ? request.max_tokens : null;
   if (opts.maxTokens) request.max_tokens = Math.min(asked ?? opts.maxTokens, opts.maxTokens);
-  const stop = request.stop == null ? [] : typeof request.stop === "string" ? [request.stop] : [...request.stop];
+  const stop =
+    request.stop == null
+      ? []
+      : typeof request.stop === "string"
+        ? [request.stop]
+        : [...request.stop];
   request.stop = [...stop, ...opts.extraStop.filter((s) => !stop.includes(s))];
   const noThink = opts.noThink && job.noThink;
-  if (noThink) request.chat_template_kwargs = { ...request.chat_template_kwargs, enable_thinking: false };
+  if (noThink)
+    request.chat_template_kwargs = { ...request.chat_template_kwargs, enable_thinking: false };
 
-  const report: ShapeReport = { job: job.id, askedMaxTokens: asked, noThink, trimmedChars: 0, catalogue: null, reordered: false };
+  const report: ShapeReport = {
+    job: job.id,
+    askedMaxTokens: asked,
+    noThink,
+    trimmedChars: 0,
+    catalogue: null,
+    reordered: false,
+  };
   if (job.id !== "dialogue") return report;
   const npc = speaker(request);
   if (opts.trim && opts.catalogue === "off") report.trimmedChars = trimRequest(request);
