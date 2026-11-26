@@ -34,7 +34,9 @@ export function reach(request: ChatRequest, earlier: readonly Seen[]): Reach {
   let match: MatchKind | null = null;
   for (const e of earlier) {
     const n = sharedPrefix(me.text, e.text);
-    if (n <= sharedChars) continue;
+    if (n <= sharedChars) {
+      continue;
+    }
     sharedChars = n;
     match =
       e.job !== me.job
@@ -52,7 +54,9 @@ export function reach(request: ChatRequest, earlier: readonly Seen[]): Reach {
 }
 
 function breakLabel(request: ChatRequest, at: number, length: number): string {
-  if (at >= length) return "whole prompt";
+  if (at >= length) {
+    return "whole prompt";
+  }
   const span = anatomy(request).find((s) => at >= s.start && at < s.start + s.length);
   return span ? `${span.kind}: ${span.label}` : "unknown";
 }

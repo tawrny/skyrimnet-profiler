@@ -28,13 +28,19 @@ export type Block = { start: number; end: number; items: (Entry | string)[]; nam
  * pointer to one Nearby actors line, and the names they listed are collected (first-seen order). */
 export function parseBlock(text: string): Block | null {
   const start = text.indexOf(BLOCK_START);
-  if (start < 0) return null;
+  if (start < 0) {
+    return null;
+  }
   const found = text.indexOf(BLOCK_END, start);
   const end = found > 0 ? found : text.length;
   let block = text.slice(start, end);
   const names: string[] = [];
   for (const m of block.matchAll(CHOICES)) {
-    for (const n of m[1]!.split("', '")) if (!names.includes(n)) names.push(n);
+    for (const n of m[1]!.split("', '")) {
+      if (!names.includes(n)) {
+        names.push(n);
+      }
+    }
   }
   block = block.replace(CHOICES, CHOICES_POINTER);
   // An entry starts at "- `Name`" and runs until the next entry or a blank line; some span many lines.
@@ -43,17 +49,23 @@ export function parseBlock(text: string): Block | null {
   for (const line of block.split("\n")) {
     const m = ENTRY.exec(line);
     if (m) {
-      if (cur) items.push(cur);
+      if (cur) {
+        items.push(cur);
+      }
       cur = { name: m[1]!, lines: [line] };
     } else if (cur && line.trim()) {
       cur.lines.push(line);
     } else {
-      if (cur) items.push(cur);
+      if (cur) {
+        items.push(cur);
+      }
       cur = null;
       items.push(line);
     }
   }
-  if (cur) items.push(cur);
+  if (cur) {
+    items.push(cur);
+  }
   return { start, end, items, names };
 }
 
@@ -61,20 +73,26 @@ function firstSentence(desc: string): string {
   const d = desc.trim();
   const m = /(?<=[.!?])\s/.exec(d);
   let first = m ? d.slice(0, m.index) : d;
-  if (first.length > MAX_DESC) first = first.slice(0, MAX_DESC).replace(/ [^ ]*$/, "") + "…";
+  if (first.length > MAX_DESC) {
+    first = first.slice(0, MAX_DESC).replace(/ [^ ]*$/, "") + "…";
+  }
   return first;
 }
 
 /** The entry with its description cut to the first sentence; whole when it has no " — " or must stay whole. */
 export function shortEntry(e: Entry): string[] {
-  if (KEEP_WHOLE.has(e.name) || !e.lines[0]!.includes(SEP)) return e.lines;
+  if (KEEP_WHOLE.has(e.name) || !e.lines[0]!.includes(SEP)) {
+    return e.lines;
+  }
   const whole = e.lines.map((s) => s.trim()).join(" ");
   const cut = (text: string, last: boolean): [string, string] => {
     const i = last ? text.lastIndexOf(SEP) : text.indexOf(SEP);
     return [text.slice(0, i), text.slice(i + SEP.length)];
   };
   let [head, desc] = cut(whole, whole.split(SEP).length - 1 !== 1);
-  if (head.includes('"}') || !head.endsWith("}")) [head, desc] = cut(whole, false);
+  if (head.includes('"}') || !head.endsWith("}")) {
+    [head, desc] = cut(whole, false);
+  }
   return [head + SEP + firstSentence(desc)];
 }
 
@@ -83,10 +101,14 @@ const nearbyLine = (names: string[]): string => `Nearby actors: ${names.join(", 
 /** Rewrite a text's action block: actor lists once, descriptions to their first sentence. */
 export function trim(text: string): string {
   const b = parseBlock(text);
-  if (!b) return text;
+  if (!b) {
+    return text;
+  }
   const out = b.items.flatMap((it) => (typeof it === "string" ? [it] : shortEntry(it)));
   let block = out.join("\n");
-  if (b.names.length) block = block.replace(BLOCK_START, `${BLOCK_START}\n${nearbyLine(b.names)}`);
+  if (b.names.length) {
+    block = block.replace(BLOCK_START, `${BLOCK_START}\n${nearbyLine(b.names)}`);
+  }
   return text.slice(0, b.start) + block + text.slice(b.end);
 }
 
@@ -100,7 +122,9 @@ export function trimRequest(request: ChatRequest): number {
       m.content = t;
     } else if (Array.isArray(m.content)) {
       for (const p of m.content) {
-        if (typeof p.text !== "string") continue;
+        if (typeof p.text !== "string") {
+          continue;
+        }
         const t = trim(p.text);
         saved += p.text.length - t.length;
         p.text = t;
@@ -168,7 +192,9 @@ export function sharedCatalogueText(
 
 /** A system message's text after the shared catalogue that opens it; the text unchanged when it has none. */
 export function afterSharedCatalogue(text: string): string {
-  if (!text.startsWith(CATALOGUE_HEADING)) return text;
+  if (!text.startsWith(CATALOGUE_HEADING)) {
+    return text;
+  }
   const marker = `\n${PROFILE_HEADING}\n`;
   const at = text.indexOf(marker);
   return at < 0 ? text : text.slice(at + marker.length);
@@ -190,13 +216,19 @@ const ACTIONS_HEADING = "## Actions Available";
 
 function findRules(text: string, b: Block): RulesSpan | null {
   const heading = text.lastIndexOf(`\n${ACTIONS_HEADING}\n`, b.start);
-  if (heading < 0) return null;
+  if (heading < 0) {
+    return null;
+  }
   const start = heading + ACTIONS_HEADING.length + 2;
   const format = text.slice(start, b.start).trim();
-  if (!text.startsWith(BLOCK_END, b.end)) return { start, end: b.end, format, guidelines: "" };
+  if (!text.startsWith(BLOCK_END, b.end)) {
+    return { start, end: b.end, format, guidelines: "" };
+  }
   const lines = text.slice(b.end).split("\n");
   let count = 1; // the "**Guidelines:**" line, then its "- " items
-  while (count < lines.length && lines[count]!.startsWith("- ")) count++;
+  while (count < lines.length && lines[count]!.startsWith("- ")) {
+    count++;
+  }
   const guidelines = lines.slice(0, count).join("\n");
   return { start, end: b.end + guidelines.length, format, guidelines };
 }
@@ -220,12 +252,18 @@ export function applyCatalogue(
   const msgs = request.messages ?? [];
   const system = msgs[0];
   const last = msgs[msgs.length - 1];
-  if (!system || !last || system.role !== "system" || typeof last.content !== "string") return none;
+  if (!system || !last || system.role !== "system" || typeof last.content !== "string") {
+    return none;
+  }
   const text = last.content;
   const b = parseBlock(text);
-  if (!b) return none;
+  if (!b) {
+    return none;
+  }
   const entries = b.items.filter((it): it is Entry => typeof it !== "string");
-  if (entries.length === 0) return none;
+  if (entries.length === 0) {
+    return none;
+  }
   const shared = scope === "shared";
   const book = (store[shared ? SHARED_BOOK : npc] ??= {});
   const added: string[] = [];
@@ -237,9 +275,14 @@ export function applyCatalogue(
       continue;
     }
     let entryText = (shorten ? shortEntry(e) : e.lines).join("\n");
-    if (shared) entryText = deName(entryText, npc);
-    if (!(e.name in book)) added.push(e.name);
-    else if (book[e.name] !== entryText) changed.push(e.name);
+    if (shared) {
+      entryText = deName(entryText, npc);
+    }
+    if (!(e.name in book)) {
+      added.push(e.name);
+    } else if (book[e.name] !== entryText) {
+      changed.push(e.name);
+    }
     book[e.name] = entryText;
   }
   const others = b.items.filter((it): it is string => typeof it === "string" && it.trim() !== "");
@@ -263,9 +306,11 @@ export function applyCatalogue(
   if (rules) {
     const format = deName(rules.format, npc);
     const guidelines = deName(rules.guidelines, npc);
-    if (rulesBook.format === undefined) added.push(RULES_BOOK);
-    else if (rulesBook.format !== format || rulesBook.guidelines !== guidelines)
+    if (rulesBook.format === undefined) {
+      added.push(RULES_BOOK);
+    } else if (rulesBook.format !== format || rulesBook.guidelines !== guidelines) {
       changed.push(RULES_BOOK);
+    }
     rulesBook.format = format;
     rulesBook.guidelines = guidelines;
     last.content = text.slice(0, rules.start) + replacement + "\n" + text.slice(rules.end);

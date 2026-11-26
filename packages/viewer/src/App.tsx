@@ -21,7 +21,9 @@ export function App() {
       api
         .calls(800)
         .then((r) => {
-          if (!live) return;
+          if (!live) {
+            return;
+          }
           setCalls(r.calls);
           setTotal(r.total);
           setError(null);

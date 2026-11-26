@@ -31,11 +31,14 @@ const OWNER = /^(?<name>.+?)'s (?:Current State|Character Profile)\b.*?(?<you>TH
 /** Split text into chunks at every ## and ### heading; text before the first heading is a chunk of its own. */
 export function chunks(text: string): Chunk[] {
   const marks = [...text.matchAll(HEADING)];
-  if (marks.length === 0) return [{ heading: null, level: 0, title: null, body: text }];
+  if (marks.length === 0) {
+    return [{ heading: null, level: 0, title: null, body: text }];
+  }
   const out: Chunk[] = [];
   const first = marks[0]!;
-  if (first.index > 0)
+  if (first.index > 0) {
     out.push({ heading: null, level: 0, title: null, body: text.slice(0, first.index) });
+  }
   marks.forEach((m, i) => {
     const end = i + 1 < marks.length ? marks[i + 1]!.index : text.length;
     out.push({
@@ -60,14 +63,18 @@ const isVolatile = (title: string): boolean =>
 export function split(text: string): [string, string] | null {
   const all = chunks(text);
   const at = all.findIndex((c) => c.title === ANCHOR);
-  if (at < 0) return null;
+  if (at < 0) {
+    return null;
+  }
   let owner: string | null = null;
   const stable: string[] = [];
   const moved = new Map<string, string[]>();
   for (const c of all.slice(0, at)) {
     if (c.title) {
       const m = OWNER.exec(c.title);
-      if (m && c.level === 2) owner = m.groups!.name! + (m.groups!.you ? ", you" : "");
+      if (m && c.level === 2) {
+        owner = m.groups!.name! + (m.groups!.you ? ", you" : "");
+      }
     }
     if (c.title && isVolatile(c.title)) {
       const listed = SECTIONS_BY_VOLATILITY.includes(c.title);
@@ -102,12 +109,17 @@ export function moveStableToSystem(request: ChatRequest): boolean {
     !last ||
     system.role !== "system" ||
     typeof last.content !== "string"
-  )
+  ) {
     return false;
+  }
   const parts = split(last.content);
-  if (!parts || !parts[0].trim()) return false;
+  if (!parts || !parts[0].trim()) {
+    return false;
+  }
   const [stable, rest] = parts;
-  if (!appendText(system, "\n\n" + stable.replace(/^\n+|\n+$/g, "") + "\n")) return false;
+  if (!appendText(system, "\n\n" + stable.replace(/^\n+|\n+$/g, "") + "\n")) {
+    return false;
+  }
   last.content = rest;
   return true;
 }

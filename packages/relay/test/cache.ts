@@ -36,23 +36,31 @@ type Group = {
 const groups = new Map<string, Group>();
 const recent: { at: number; seen: Seen }[] = [];
 for (const line of readFileSync(positionals[0]!, "utf8").split("\n")) {
-  if (!line.trim()) continue;
+  if (!line.trim()) {
+    continue;
+  }
   let rec: Rec;
   try {
     rec = JSON.parse(line);
   } catch {
     continue;
   }
-  if (!rec.request?.messages) continue;
+  if (!rec.request?.messages) {
+    continue;
+  }
   const at = Date.parse(rec.time.replace(" ", "T"));
-  while (recent.length && at - recent[0]!.at > windowMs) recent.shift();
+  while (recent.length && at - recent[0]!.at > windowMs) {
+    recent.shift();
+  }
   const r = reach(
     rec.request,
     recent.map((e) => e.seen),
   );
   const me = seen(rec.request);
   recent.push({ at, seen: me });
-  if (values.since && rec.time < values.since) continue;
+  if (values.since && rec.time < values.since) {
+    continue;
+  }
 
   const key = `${me.job} | ${rec.provider ?? "provider not logged"}`;
   const g = groups.get(key) ?? {

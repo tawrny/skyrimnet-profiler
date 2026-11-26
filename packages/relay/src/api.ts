@@ -42,14 +42,18 @@ class Log {
   }
 
   refresh(): void {
-    if (!existsSync(this.path)) return;
+    if (!existsSync(this.path)) {
+      return;
+    }
     const size = statSync(this.path).size;
     if (size < this.offset) {
       this.records = [];
       this.offset = 0;
       this.rest = "";
     } // log was replaced
-    if (size === this.offset) return;
+    if (size === this.offset) {
+      return;
+    }
     const fd = openSync(this.path, "r");
     const buf = Buffer.alloc(size - this.offset);
     readSync(fd, buf, 0, buf.length, this.offset);
@@ -58,7 +62,9 @@ class Log {
     const lines = (this.rest + buf.toString("utf8")).split("\n");
     this.rest = lines.pop() ?? "";
     for (const line of lines) {
-      if (!line.trim()) continue;
+      if (!line.trim()) {
+        continue;
+      }
       try {
         this.records.push(JSON.parse(line) as Rec);
       } catch {
@@ -105,15 +111,18 @@ export function startApi(port: number, logPath: string, store: CatalogueStore): 
         const offset = Number(url.searchParams.get("offset") ?? 0);
         const limit = Math.min(Number(url.searchParams.get("limit") ?? 200), 2000);
         const out = [];
-        for (let i = recs.length - 1 - offset; i >= 0 && out.length < limit; i--)
+        for (let i = recs.length - 1 - offset; i >= 0 && out.length < limit; i--) {
           out.push(summary(recs[i]!, i));
+        }
         return send(res, 200, { total: recs.length, calls: out });
       }
       const one = /^\/api\/calls\/(\d+)$/.exec(url.pathname);
       if (one) {
         const i = Number(one[1]);
         const r = recs[i];
-        if (!r) return send(res, 404, { error: "no such call" });
+        if (!r) {
+          return send(res, 404, { error: "no such call" });
+        }
         const npc = speaker(r.request);
         const job = classify(r.request).id;
         let prevIndex: number | null = null;
@@ -143,7 +152,9 @@ export function startApi(port: number, logPath: string, store: CatalogueStore): 
         const last = Number(url.searchParams.get("last") ?? 2000);
         return send(res, 200, volatility(recs.slice(-last).map((r) => r.request)));
       }
-      if (url.pathname === "/api/catalogue") return send(res, 200, store);
+      if (url.pathname === "/api/catalogue") {
+        return send(res, 200, store);
+      }
       return send(res, 404, { error: "unknown endpoint" });
     } catch (err) {
       return send(res, 500, { error: String(err) });

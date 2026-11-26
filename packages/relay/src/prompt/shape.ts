@@ -54,7 +54,9 @@ export function shape(
 ): ShapeReport {
   const job = classify(request);
   const asked = typeof request.max_tokens === "number" ? request.max_tokens : null;
-  if (opts.maxTokens) request.max_tokens = Math.min(asked ?? opts.maxTokens, opts.maxTokens);
+  if (opts.maxTokens) {
+    request.max_tokens = Math.min(asked ?? opts.maxTokens, opts.maxTokens);
+  }
   const stop =
     request.stop == null
       ? []
@@ -63,8 +65,9 @@ export function shape(
         : [...request.stop];
   request.stop = [...stop, ...opts.extraStop.filter((s) => !stop.includes(s))];
   const noThink = opts.noThink && job.noThink;
-  if (noThink)
+  if (noThink) {
     request.chat_template_kwargs = { ...request.chat_template_kwargs, enable_thinking: false };
+  }
 
   const report: ShapeReport = {
     job: job.id,
@@ -74,13 +77,21 @@ export function shape(
     catalogue: null,
     reordered: false,
   };
-  if (job.id !== "dialogue") return report;
+  if (job.id !== "dialogue") {
+    return report;
+  }
   const npc = speaker(request);
-  if (opts.trim && opts.catalogue === "off") report.trimmedChars = trimRequest(request);
+  if (opts.trim && opts.catalogue === "off") {
+    report.trimmedChars = trimRequest(request);
+  }
   if (opts.catalogue !== "off" && npc) {
     const r = applyCatalogue(request, npc, store, opts.catalogue, opts.trim);
-    if (r.applied) report.catalogue = { added: r.added, changed: r.changed };
+    if (r.applied) {
+      report.catalogue = { added: r.added, changed: r.changed };
+    }
   }
-  if (opts.reorder) report.reordered = moveStableToSystem(request);
+  if (opts.reorder) {
+    report.reordered = moveStableToSystem(request);
+  }
   return report;
 }

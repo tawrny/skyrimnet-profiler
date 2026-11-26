@@ -28,8 +28,11 @@ export function anatomy(request: ChatRequest): Span[] {
   let pos = 0;
   const push = (kind: SpanKind, label: string, length: number) => {
     const prev = spans[spans.length - 1];
-    if (prev && prev.kind === kind && kind === "history") prev.length += length;
-    else spans.push({ kind, label, start: pos, length });
+    if (prev && prev.kind === kind && kind === "history") {
+      prev.length += length;
+    } else {
+      spans.push({ kind, label, start: pos, length });
+    }
     pos += length;
   };
   msgs.forEach((m, i) => {
@@ -50,13 +53,21 @@ export function anatomy(request: ChatRequest): Span[] {
       const title = c.title ?? (isFirst ? "Bio and rules" : "Setting");
       let kind: SpanKind;
       if (isFirst) {
-        if (c.heading) inCatalogue = c.heading === CATALOGUE_HEADING; // the catalogue has no sub-headings
+        if (c.heading) {
+          inCatalogue = c.heading === CATALOGUE_HEADING;
+        } // the catalogue has no sub-headings
         kind = inCatalogue ? "catalogue" : "system";
       } else {
-        if (c.title === ANCHOR) afterTask = true;
-        if (c.title && /Actions Available|^Other$/.test(c.title)) kind = "actions";
-        else if (afterTask) kind = "task";
-        else kind = c.title && volatileTitle(c.title) ? "volatile" : "stable";
+        if (c.title === ANCHOR) {
+          afterTask = true;
+        }
+        if (c.title && /Actions Available|^Other$/.test(c.title)) {
+          kind = "actions";
+        } else if (afterTask) {
+          kind = "task";
+        } else {
+          kind = c.title && volatileTitle(c.title) ? "volatile" : "stable";
+        }
       }
       push(kind, title, length);
     }
@@ -68,6 +79,8 @@ export function anatomy(request: ChatRequest): Span[] {
 export function sharedPrefix(a: string, b: string): number {
   const n = Math.min(a.length, b.length);
   let i = 0;
-  while (i < n && a.charCodeAt(i) === b.charCodeAt(i)) i++;
+  while (i < n && a.charCodeAt(i) === b.charCodeAt(i)) {
+    i++;
+  }
   return i;
 }

@@ -43,8 +43,9 @@ const { values: args } = parseArgs({
   },
 });
 
-if (!isCatalogueMode(args.catalogue))
+if (!isCatalogueMode(args.catalogue)) {
   throw new Error(`--catalogue must be one of ${CATALOGUE_MODES.join(", ")}`);
+}
 const opts = {
   ...DEFAULTS,
   maxTokens: Number(args["max-tokens"]),
@@ -120,7 +121,9 @@ function replyText(body: string, streamed: boolean): ReplyParts {
     if (streamed) {
       for (const raw of body.split("\n")) {
         const line = raw.trim();
-        if (!line.startsWith("data:") || line.slice(5).trim() === "[DONE]") continue;
+        if (!line.startsWith("data:") || line.slice(5).trim() === "[DONE]") {
+          continue;
+        }
         const chunk = JSON.parse(line.slice(5).trim());
         timings = chunk.timings ?? timings;
         usage = chunk.usage ?? usage;
@@ -172,7 +175,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   const t0 = performance.now();
   const headers: Record<string, string> = {};
   for (const [k, v] of Object.entries(req.headers)) {
-    if (!HOP_BY_HOP.has(k.toLowerCase()) && typeof v === "string") headers[k] = v;
+    if (!HOP_BY_HOP.has(k.toLowerCase()) && typeof v === "string") {
+      headers[k] = v;
+    }
   }
   // The reply is logged as text, so ask the upstream for it uncompressed; SkyrimNet's hop is local anyway.
   delete headers["accept-encoding"]; // Node lowercases incoming header names
@@ -183,7 +188,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   let clientGone = false;
   let firstByteMs: number | null = null; // what SkyrimNet's first-token deadline measures
   res.on("close", () => {
-    if (res.writableFinished) return;
+    if (res.writableFinished) {
+      return;
+    }
     clientGone = true;
     up.destroy();
   });
@@ -200,17 +207,23 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     (upRes) => {
       const outHeaders: Record<string, string | string[]> = {};
       for (const [k, v] of Object.entries(upRes.headers)) {
-        if (!HOP_BY_HOP.has(k.toLowerCase()) && v !== undefined) outHeaders[k] = v;
+        if (!HOP_BY_HOP.has(k.toLowerCase()) && v !== undefined) {
+          outHeaders[k] = v;
+        }
       }
       res.writeHead(upRes.statusCode ?? 502, outHeaders); // no content-length: Node streams it chunked
       const captured: Buffer[] = [];
       upRes.on("data", (c: Buffer) => {
         firstByteMs ??= performance.now() - t0;
         captured.push(c);
-        if (!clientGone) res.write(c);
+        if (!clientGone) {
+          res.write(c);
+        }
       });
       upRes.on("end", () => {
-        if (!clientGone) res.end();
+        if (!clientGone) {
+          res.end();
+        }
       });
       // "close" follows both a finished reply and one cut short by the client hanging up.
       upRes.on("close", () =>
@@ -223,7 +236,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       record(null, "", []); // hung up before llama-server started replying
       return;
     }
-    if (!res.headersSent) res.writeHead(502, { "content-type": "application/json" });
+    if (!res.headersSent) {
+      res.writeHead(502, { "content-type": "application/json" });
+    }
     res.end(
       JSON.stringify({
         error: { message: `relay: upstream ${upstream.origin} failed: ${err.message}` },
@@ -234,7 +249,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   let recorded = false;
   function record(status: number | null, contentType: string, captured: Buffer[]) {
-    if (recorded || !isChat) return;
+    if (recorded || !isChat) {
+      return;
+    }
     recorded = true;
     const { reply, reasoning, timings, usage, provider } = replyText(
       Buffer.concat(captured).toString("utf8"),
@@ -261,7 +278,9 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
 createServer((req, res) => {
   handle(req, res).catch((err) => {
-    if (!res.headersSent) res.writeHead(500, { "content-type": "application/json" });
+    if (!res.headersSent) {
+      res.writeHead(500, { "content-type": "application/json" });
+    }
     res.end(JSON.stringify({ error: { message: `relay: ${String(err)}` } }));
   });
 }).listen(Number(args.listen), "127.0.0.1", () => {

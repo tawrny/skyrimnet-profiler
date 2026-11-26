@@ -62,12 +62,18 @@ export function CallView({ index, onOpen }: { index: number; onOpen: (i: number)
     setCall(null);
     api.call(index).then(setCall, (e: unknown) => setError(String(e)));
   }, [index]);
-  if (error) return <p className="err">{error}</p>;
-  if (!call) return <p className="hint">Loading…</p>;
+  if (error) {
+    return <p className="err">{error}</p>;
+  }
+  if (!call) {
+    return <p className="hint">Loading…</p>;
+  }
 
   const reread = call.promptChars - call.sharedChars;
   const byKind = new Map<SpanKind, number>();
-  for (const s of call.anatomy) byKind.set(s.kind, (byKind.get(s.kind) ?? 0) + s.length);
+  for (const s of call.anatomy) {
+    byKind.set(s.kind, (byKind.get(s.kind) ?? 0) + s.length);
+  }
 
   return (
     <div className="detail">

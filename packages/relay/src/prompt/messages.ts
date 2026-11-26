@@ -16,8 +16,12 @@ export type ChatRequest = {
 
 /** The text of a message's content, joining text parts; images and other parts contribute nothing. */
 export function textOf(content: Message["content"] | undefined): string {
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
+  if (typeof content === "string") {
+    return content;
+  }
+  if (!Array.isArray(content)) {
+    return "";
+  }
   return content.map((part) => (typeof part.text === "string" ? part.text : "")).join("");
 }
 

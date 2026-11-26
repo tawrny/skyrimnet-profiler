@@ -27,8 +27,9 @@ const { values, positionals } = parseArgs({
     warm: { type: "boolean" }, // fill the catalogue with a first pass, as a saved catalogue would be
   },
 });
-if (!isCatalogueMode(values.catalogue))
+if (!isCatalogueMode(values.catalogue)) {
   throw new Error(`--catalogue must be one of ${CATALOGUE_MODES.join(", ")}`);
+}
 const opts = {
   ...DEFAULTS,
   trim: !!values.trim,
@@ -49,7 +50,9 @@ if (values.warm) {
   for (const line of lines) {
     try {
       const r = JSON.parse(line).request as ChatRequest;
-      if (r && classify(r).id === "dialogue") shape(structuredClone(r), opts, store);
+      if (r && classify(r).id === "dialogue") {
+        shape(structuredClone(r), opts, store);
+      }
     } catch {
       /* skip */
     }
@@ -57,7 +60,9 @@ if (values.warm) {
 }
 
 for (const line of lines) {
-  if (!line.trim()) continue;
+  if (!line.trim()) {
+    continue;
+  }
   let rec: { request?: ChatRequest };
   try {
     rec = JSON.parse(line);
@@ -65,13 +70,18 @@ for (const line of lines) {
     continue;
   }
   const original = rec.request;
-  if (!original || classify(original).id !== "dialogue") continue;
+  if (!original || classify(original).id !== "dialogue") {
+    continue;
+  }
   const npc = speaker(original);
-  if (!npc) continue;
+  if (!npc) {
+    continue;
+  }
   const shaped = structuredClone(original);
   const report = shape(shaped, opts, store);
-  if (report.catalogue && (report.catalogue.added.length || report.catalogue.changed.length))
+  if (report.catalogue && (report.catalogue.added.length || report.catalogue.changed.length)) {
     catalogueChanges++;
+  }
   const o = promptText(original),
     s = promptText(shaped);
   const po = prevOrig.get(npc),
