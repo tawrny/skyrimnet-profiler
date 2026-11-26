@@ -1,7 +1,7 @@
-// Logging relay between SkyrimNet and a local OpenAI-compatible server (llama-server).
+// Logging relay between SkyrimNet and an OpenAI-compatible server: llama-server locally, or OpenRouter.
 //
 // SkyrimNet only logs prompts and replies for its OpenRouter provider. This relay listens where SkyrimNet sends
-// local requests, shapes each chat request (see prompt/shape.ts), forwards it, streams the reply back as it
+// requests, shapes each chat request (see prompt/shape.ts), forwards it, streams the reply back as it
 // arrives, and appends one JSON line per call to a log. A second, read-only port serves that log to the viewer.
 //
 //   node src/server.ts [--listen 8089] [--upstream http://127.0.0.1:8090] [--log PATH] [--catalogue-file PATH]
@@ -9,6 +9,7 @@
 //                      [--reorder]
 
 import { createServer, request as httpRequest, type IncomingMessage, type ServerResponse } from "node:http";
+import { request as httpsRequest } from "node:https";
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import {
@@ -41,6 +42,7 @@ const opts = {
   reorder: args.reorder!,
 };
 const upstream = new URL(args.upstream!);
+const sendUpstream = upstream.protocol === "https:" ? httpsRequest : httpRequest;
 const logPath = args.log!;
 const cataloguePath = args["catalogue-file"]!;
 const store: CatalogueStore = existsSync(cataloguePath) ? JSON.parse(readFileSync(cataloguePath, "utf8")) : {};
@@ -127,6 +129,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   for (const [k, v] of Object.entries(req.headers)) {
     if (!HOP_BY_HOP.has(k.toLowerCase()) && typeof v === "string") headers[k] = v;
   }
+  // The reply is logged as text, so ask the upstream for it uncompressed; SkyrimNet's hop is local anyway.
+  delete headers["accept-encoding"]; // Node lowercases incoming header names
   headers["content-length"] = String(body.length);
 
   // SkyrimNet abandons a call that is slow to its first token and retries it; cancel ours so llama-server
@@ -139,8 +143,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     up.destroy();
   });
 
-  const up = httpRequest(
-    { hostname: upstream.hostname, port: upstream.port, path: req.url, method: req.method, headers, timeout: 600_000 },
+  const up = sendUpstream(
+    { hostname: upstream.hostname, port: upstream.port || undefined, path: req.url, method: req.method, headers, timeout: 600_000 },
     (upRes) => {
       const outHeaders: Record<string, string | string[]> = {};
       for (const [k, v] of Object.entries(upRes.headers)) {
