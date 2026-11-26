@@ -1,7 +1,7 @@
 // The relay's request shaping, in order: generation cap and stop sequences, thinking per job, then (each
 // switchable) the action trim, the action catalogue, and moving stable context ahead of the history.
 
-import { applyCatalogue, trimRequest, type CatalogueStore } from "./actions.ts";
+import { applyCatalogue, trimRequest, type CatalogueScope, type CatalogueStore } from "./actions.ts";
 import { classify, speaker } from "./jobs.ts";
 import type { ChatRequest } from "./messages.ts";
 import { moveStableToSystem } from "./sections.ts";
@@ -13,16 +13,22 @@ export type ShapeOptions = {
   extraStop: readonly string[];
   noThink: boolean;
   trim: boolean;
-  catalogue: boolean;
+  catalogue: CatalogueMode;
   reorder: boolean;
 };
+
+export type CatalogueMode = "off" | CatalogueScope;
+export const CATALOGUE_MODES: readonly CatalogueMode[] = ["off", "npc", "shared"];
+export function isCatalogueMode(x: unknown): x is CatalogueMode {
+  return CATALOGUE_MODES.some((m) => m === x);
+}
 
 export const DEFAULTS: ShapeOptions = {
   maxTokens: 1024,
   extraStop: ["</s>", "<|tool_response>"],
   noThink: true,
   trim: false,
-  catalogue: false,
+  catalogue: "off",
   reorder: false,
 };
 
@@ -48,9 +54,9 @@ export function shape(request: ChatRequest, opts: ShapeOptions, store: Catalogue
   const report: ShapeReport = { job: job.id, askedMaxTokens: asked, noThink, trimmedChars: 0, catalogue: null, reordered: false };
   if (job.id !== "dialogue") return report;
   const npc = speaker(request);
-  if (opts.trim && !opts.catalogue) report.trimmedChars = trimRequest(request);
-  if (opts.catalogue && npc) {
-    const r = applyCatalogue(request, npc, store, opts.trim);
+  if (opts.trim && opts.catalogue === "off") report.trimmedChars = trimRequest(request);
+  if (opts.catalogue !== "off" && npc) {
+    const r = applyCatalogue(request, npc, store, opts.catalogue, opts.trim);
     if (r.applied) report.catalogue = { added: r.added, changed: r.changed };
   }
   if (opts.reorder) report.reordered = moveStableToSystem(request);
