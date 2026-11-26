@@ -49,7 +49,7 @@ export function shape(request: ChatRequest, opts: ShapeOptions, store: Catalogue
   const stop = request.stop == null ? [] : typeof request.stop === "string" ? [request.stop] : [...request.stop];
   request.stop = [...stop, ...opts.extraStop.filter((s) => !stop.includes(s))];
   const noThink = opts.noThink && job.noThink;
-  if (noThink) request.chat_template_kwargs = { ...(request.chat_template_kwargs ?? {}), enable_thinking: false };
+  if (noThink) request.chat_template_kwargs = { ...request.chat_template_kwargs, enable_thinking: false };
 
   const report: ShapeReport = { job: job.id, askedMaxTokens: asked, noThink, trimmedChars: 0, catalogue: null, reordered: false };
   if (job.id !== "dialogue") return report;

@@ -9,9 +9,16 @@
     "relay": "npm --workspace @skyrimnet/relay run start",
     "viewer": "npm --workspace @skyrimnet/viewer run dev",
     "test": "npm --workspace @skyrimnet/relay test",
-    "typecheck": "npm --workspaces run typecheck"
+    "typecheck": "npm --workspaces run typecheck",
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
   },
   "engines": {
     "node": ">=24"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.80.0",
+    "oxlint": "^1.95.0"
   }
 }
