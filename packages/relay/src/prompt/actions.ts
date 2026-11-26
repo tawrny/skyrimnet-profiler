@@ -14,7 +14,8 @@ export const BLOCK_END = "**Guidelines:**";
 export const SEP = " — "; // " — " between an action's parameters and its description
 const MAX_DESC = 220;
 const KEEP_WHOLE = new Set(["TriggerDialogueLine"]);
-const CHOICES = /Valid Choices: ((?:'[^']*'(?:, )?)+)\. Choose one of these actor names EXACTLY\./g;
+// Names can hold apostrophes ("Dro'zamarak"), so a list is split on its "', '" separators, not matched name by name.
+const CHOICES = /Valid Choices: '(.*?)'\. Choose one of these actor names EXACTLY\./g;
 const CHOICES_POINTER = "Must be a name from the Nearby actors line above, exactly.";
 const ENTRY = /^- `([^`]+)`/;
 
@@ -31,7 +32,7 @@ export function parseBlock(text: string): Block | null {
   let block = text.slice(start, end);
   const names: string[] = [];
   for (const m of block.matchAll(CHOICES)) {
-    for (const n of m[1]!.matchAll(/'([^']*)'/g)) if (!names.includes(n[1]!)) names.push(n[1]!);
+    for (const n of m[1]!.split("', '")) if (!names.includes(n)) names.push(n);
   }
   block = block.replace(CHOICES, CHOICES_POINTER);
   // An entry starts at "- `Name`" and runs until the next entry or a blank line; some span many lines.
