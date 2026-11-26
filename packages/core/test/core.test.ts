@@ -1,11 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  compare,
   deName,
   isCallInput,
   lineChange,
   NO_USAGE,
   pieces,
+  previousCall,
   segmentRequest,
   toRecordedCall,
   volatilityReport,
@@ -165,11 +167,11 @@ const row = (id: number, actor: string | null, segments: SegmentRef[]): CallRow 
 });
 
 // Lydia twice (her rules unchanged, her bio appended to), then Mjoll (rules identical, bio identical bar the name).
-const CALLS: CallRow[] = [
-  row(1, "Lydia", [seg("rules", "r"), seg("bio", "b1", "t1")]),
-  row(2, "Lydia", [seg("rules", "r"), seg("bio", "b2", "t2")]),
-  row(3, "Mjoll", [seg("rules", "r"), seg("bio", "m2", "t2")]),
-];
+const FIRST_LYDIA = row(1, "Lydia", [seg("rules", "r"), seg("bio", "b1", "t1")]);
+const SECOND_LYDIA = row(2, "Lydia", [seg("rules", "r"), seg("bio", "b2", "t2")]);
+const FIRST_MJOLL = row(3, "Mjoll", [seg("rules", "r"), seg("bio", "m2", "t2")]);
+
+const CALLS: CallRow[] = [FIRST_LYDIA, SECOND_LYDIA, FIRST_MJOLL];
 
 const TEXTS = new Map([
   ["b1", "Lydia is a housecarl."],
@@ -216,6 +218,44 @@ describe("volatilityReport", () => {
     const [mixed] = volatilityReport(MIXED_CALLS, new Map());
 
     assert.equal(mixed?.acrossActors.pairs, 0);
+  });
+});
+
+// compare
+
+const A = seg("a", "a1");
+const B = seg("b", "b1");
+const B_CHANGED = seg("b", "b2");
+const C = seg("c", "c1");
+
+const SAME_SAME = ["same", "same"];
+const SAME_CHANGED = ["same", "changed"];
+const NEW_SAME_SAME = ["new", "same", "same"];
+
+const compareCases: [SegmentRef[], SegmentRef[], string[], number][] = [
+  [[A, B], [A, B], SAME_SAME, 20],
+  [[A, B], [A, B_CHANGED], SAME_CHANGED, 10],
+  [[A, B], [C, A, B], NEW_SAME_SAME, 0],
+  [[A, B], [B, A], SAME_SAME, 0],
+];
+
+describe("compare", () => {
+  for (const [earlier, later, statuses, stablePrefixTokens] of compareCases) {
+    it(`${later.map((s) => s.hash).join(" ")}: ${statuses.join(", ")}, ${stablePrefixTokens} stable tokens`, () => {
+      assert.deepEqual(compare(earlier, later), { statuses, stablePrefixTokens });
+    });
+  }
+});
+
+// previousCall
+
+describe("previousCall", () => {
+  it("finds the latest earlier call of the same kind and actor", () => {
+    assert.equal(previousCall(CALLS, SECOND_LYDIA)?.id, FIRST_LYDIA.id);
+  });
+
+  it("is null for an actor's first call", () => {
+    assert.equal(previousCall(CALLS, FIRST_MJOLL), null);
   });
 });
 

@@ -1,7 +1,7 @@
 // Which SkyrimNet job a request is, from the opening of its first message.
 
 import { afterSharedCatalogue } from "./actions.ts";
-import { textOf, type ChatRequest } from "./messages.ts";
+import { textOf, type ChatRequest } from "@volatility/core";
 
 export type Job = {
   id: string;

@@ -107,6 +107,45 @@ export function acrossActorPairs(calls: readonly CallRow[]): CallPair[] {
   return pairs;
 }
 
+export type SegmentStatus = "same" | "changed" | "new";
+
+export type Comparison = {
+  /** One per segment of the later call, in its order. */
+  statuses: SegmentStatus[];
+  /** Tokens before the first segment that differs from the earlier call's at the same position: what a prefix cache
+   * could reuse. */
+  stablePrefixTokens: number;
+};
+
+export function compare(earlier: readonly SegmentRef[], later: readonly SegmentRef[]): Comparison {
+  const before = new Map(earlier.map((s) => [s.name, s.hash]));
+  const statuses = later.map((s): SegmentStatus => {
+    const old = before.get(s.name);
+
+    if (old === undefined) {
+      return "new";
+    }
+
+    return old === s.hash ? "same" : "changed";
+  });
+  const firstDiffering = later.findIndex((s, i) => earlier[i]?.hash !== s.hash);
+  const stable = firstDiffering === -1 ? later : later.slice(0, firstDiffering);
+
+  return { statuses, stablePrefixTokens: stable.reduce((sum, s) => sum + s.tokens, 0) };
+}
+
+/** The latest call before this one with the same kind and actor. */
+export function previousCall(calls: readonly CallRow[], call: CallRow): CallRow | null {
+  const earlier = byTime(calls).filter(
+    (c) =>
+      c.kind === call.kind &&
+      c.actor === call.actor &&
+      (c.time < call.time || (c.time === call.time && c.id < call.id)),
+  );
+
+  return earlier.at(-1) ?? null;
+}
+
 /** Hashes whose text the within-segment analysis needs: both versions of every segment that changed over time. */
 export function textsNeeded(calls: readonly CallRow[]): string[] {
   const hashes = new Set<string>();

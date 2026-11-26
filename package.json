@@ -6,7 +6,10 @@
     "packages/*"
   ],
   "scripts": {
-    "relay": "npm --workspace @volatility/relay run start",
+    "api": "npm --workspace @volatility/api run start --",
+    "relay": "npm --workspace @volatility/relay run start --",
+    "skyrimnet:relay": "npm --workspace @volatility/skyrimnet run relay --",
+    "skyrimnet:import": "npm --workspace @volatility/skyrimnet run import --",
     "viewer": "npm --workspace @volatility/viewer run dev",
     "test": "npm --workspaces --if-present test",
     "typecheck": "npm --workspaces run typecheck",

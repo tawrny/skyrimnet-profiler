@@ -1,14 +1,18 @@
 {
   "name": "@volatility/relay",
   "private": true,
-  "description": "Logging relay between SkyrimNet and a local model server, with prompt shaping for caching",
+  "description": "A logging relay in front of an OpenAI-compatible server, feeding calls to the profiler",
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
-    "start": "node src/server.ts",
+    "start": "node src/main.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@volatility/skyrimnet": "*"
+    "@volatility/core": "*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
