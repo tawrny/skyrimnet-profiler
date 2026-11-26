@@ -1,7 +1,7 @@
 {
   "name": "@volatility/viewer",
   "private": true,
-  "description": "Local viewer for SkyrimNet's LLM calls: timeline, prompt anatomy and cache reuse, section volatility",
+  "description": "Local viewer for profiled LLM calls: the call list, each call's segments against the previous call, and segment volatility",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@volatility/skyrimnet": "*",
+    "@volatility/core": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

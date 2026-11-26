@@ -6,14 +6,10 @@
   --muted: #8b929c;
   --accent: #7fb2ff;
   --bad: #ff8a7a;
-  --k-system: #5b6b8c;
-  --k-catalogue: #7f6bd6;
-  --k-history: #4d8f86;
-  --k-stable: #6f9e4f;
-  --k-volatile: #d39b3b;
-  --k-task: #c9604f;
-  --k-actions: #b7547f;
-  --k-other: #666;
+  --st-same: #6f9e4f;
+  --st-changed: #d39b3b;
+  --st-new: #c9604f;
+  --st-first: #5b6b8c;
   color-scheme: dark;
   font:
     14px/1.45 system-ui,
@@ -178,6 +174,7 @@ h3 {
   margin: 18px 0 8px;
 }
 .anatomy .track {
+  display: flex;
   position: relative;
   height: 34px;
   background: var(--line);
@@ -185,9 +182,7 @@ h3 {
   overflow: hidden;
 }
 .anatomy .seg {
-  position: absolute;
-  top: 0;
-  bottom: 0;
+  flex: none;
   border-right: 1px solid var(--bg);
 }
 .anatomy .reused {
@@ -219,29 +214,17 @@ td i {
   background: repeating-linear-gradient(45deg, #fff 0 3px, transparent 3px 6px);
   border: 1px solid var(--muted);
 }
-.k-system {
-  background: var(--k-system);
+.st-same {
+  background: var(--st-same);
 }
-.k-catalogue {
-  background: var(--k-catalogue);
+.st-changed {
+  background: var(--st-changed);
 }
-.k-history {
-  background: var(--k-history);
+.st-new {
+  background: var(--st-new);
 }
-.k-stable {
-  background: var(--k-stable);
-}
-.k-volatile {
-  background: var(--k-volatile);
-}
-.k-task {
-  background: var(--k-task);
-}
-.k-actions {
-  background: var(--k-actions);
-}
-.k-other {
-  background: var(--k-other);
+.st-first {
+  background: var(--st-first);
 }
 .cache a {
   color: var(--accent);
@@ -260,8 +243,15 @@ th {
   color: var(--muted);
   font-weight: 500;
 }
-table.kinds {
+table.spans {
   margin-top: 10px;
+  width: 100%;
+}
+table.spans td {
+  vertical-align: top;
+}
+table.spans details {
+  margin: 0;
 }
 pre {
   white-space: pre-wrap;
@@ -285,10 +275,9 @@ summary {
 }
 .volatility table {
   width: 100%;
-  max-width: 900px;
 }
 .ratebar {
-  width: 240px;
+  width: 160px;
 }
 .ratebar span {
   display: block;
@@ -296,11 +285,11 @@ summary {
   border-radius: 4px;
 }
 .ratebar .cool {
-  background: var(--k-stable);
+  background: var(--st-same);
 }
 .ratebar .warm {
-  background: var(--k-volatile);
+  background: var(--st-changed);
 }
 .ratebar .hot {
-  background: var(--k-task);
+  background: var(--st-new);
 }

@@ -1,163 +1,146 @@
 import { useEffect, useState } from "react";
-import type { Span, SpanKind } from "@volatility/skyrimnet";
-import { api, type CallDetail } from "./api.ts";
+import { api, type CallDetail, type SegmentStatus } from "./api.ts";
 
-const KIND_LABEL: Record<SpanKind, string> = {
-  system: "System (bio, rules)",
-  catalogue: "Action catalogue",
-  history: "History",
-  stable: "Stable context",
-  volatile: "Volatile context",
-  task: "Task",
-  actions: "Action list",
-  other: "Other",
+const STATUS_LABEL: Record<SegmentStatus | "first", string> = {
+  same: "Same as the previous call",
+  changed: "Changed",
+  new: "New in this call",
+  first: "No previous call to compare",
 };
-const tok = (chars: number) => Math.round(chars / 4).toLocaleString();
 
-function AnatomyBar({ spans, total, shared }: { spans: Span[]; total: number; shared: number }) {
-  const pct = (n: number) => `${(100 * n) / total}%`;
+const fmt = (n: number) => n.toLocaleString();
 
-  return (
-    <div className="anatomy">
-      <div className="track">
-        {spans.map((s, i) => (
-          <span
-            key={i}
-            className={`seg k-${s.kind}`}
-            style={{ left: pct(s.start), width: pct(s.length) }}
-            title={`${s.label} (${KIND_LABEL[s.kind]}): ${tok(s.length)} tok`}
-          />
-        ))}
-        {shared > 0 && (
-          <span
-            className="reused"
-            style={{ width: pct(shared) }}
-            title={`reusable prefix: ${tok(shared)} tok`}
-          />
-        )}
-      </div>
-      <div className="legend">
-        {(Object.keys(KIND_LABEL) as SpanKind[])
-          .filter((k) => spans.some((s) => s.kind === k))
-          .map((k) => (
-            <span key={k}>
-              <i className={`k-${k}`} />
-              {KIND_LABEL[k]}
-            </span>
-          ))}
-        {shared > 0 && (
-          <span>
-            <i className="reused-key" />
-            reusable from previous turn
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export function CallView({ index, onOpen }: { index: number; onOpen: (i: number) => void }) {
-  const [call, setCall] = useState<CallDetail | null>(null);
+export function CallView({ id, onOpen }: { id: number; onOpen: (id: number) => void }) {
+  const [detail, setDetail] = useState<CallDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setCall(null);
-    api.call(index).then(setCall, (e: unknown) => setError(String(e)));
-  }, [index]);
+    setDetail(null);
+    setError(null);
+    api.call(id).then(setDetail, (e: unknown) => setError(String(e)));
+  }, [id]);
 
   if (error) {
     return <p className="err">{error}</p>;
   }
 
-  if (!call) {
+  if (!detail) {
     return <p className="hint">Loading…</p>;
   }
 
-  const reread = call.promptChars - call.sharedChars;
-  const byKind = new Map<SpanKind, number>();
-
-  for (const s of call.anatomy) {
-    byKind.set(s.kind, (byKind.get(s.kind) ?? 0) + s.length);
-  }
+  const { call, previous } = detail;
+  const status = (i: number): SegmentStatus | "first" => previous?.statuses[i] ?? "first";
+  const shown = new Set(call.segments.map((_, i) => status(i)));
+  const pct = (n: number) => `${(100 * n) / Math.max(1, call.promptTokens)}%`;
+  const { usage } = call;
 
   return (
     <div className="detail">
       <h2>
-        {call.jobLabel}
-        {call.npc && <> · {call.npc}</>}{" "}
+        {call.kind}
+        {call.actor && <> · {call.actor}</>}{" "}
         <small>
-          {call.time} · {call.seconds.toFixed(1)} s · {call.thinking ? "thinking" : "no thinking"}
+          #{call.id} · {new Date(call.time).toLocaleString()}
+          {call.durationMs !== null && <> · {(call.durationMs / 1000).toFixed(1)} s</>}
+          {call.model && <> · {call.model}</>}
+          {call.provider && <> via {call.provider}</>}
         </small>
       </h2>
 
       <h3>
-        Prompt anatomy <small>{tok(call.promptChars)} tok</small>
+        Segments <small>{fmt(call.promptTokens)} tok (approx.)</small>
       </h3>
-      <AnatomyBar spans={call.anatomy} total={call.promptChars} shared={call.sharedChars} />
-      {call.previousIndex !== null ? (
+      <div className="anatomy">
+        <div className="track">
+          {call.segments.map((s, i) => (
+            <span
+              key={i}
+              className={`seg st-${status(i)}`}
+              style={{ width: pct(s.tokens) }}
+              title={`${s.name}: ${fmt(s.tokens)} tok, ${STATUS_LABEL[status(i)].toLowerCase()}`}
+            />
+          ))}
+          {previous && previous.stablePrefixTokens > 0 && (
+            <span className="reused" style={{ width: pct(previous.stablePrefixTokens) }} />
+          )}
+        </div>
+        <div className="legend">
+          {[...shown].map((st) => (
+            <span key={st}>
+              <i className={`st-${st}`} />
+              {STATUS_LABEL[st]}
+            </span>
+          ))}
+          {previous && (
+            <span>
+              <i className="reused-key" />
+              Stable prefix
+            </span>
+          )}
+        </div>
+      </div>
+
+      {previous ? (
         <p className="cache">
-          Unchanged since this NPC's previous {call.jobLabel.toLowerCase()} call (
-          <a onClick={() => onOpen(call.previousIndex!)}>#{call.previousIndex}</a>):{" "}
-          <b>{tok(call.sharedChars)} tok</b> reusable, <b className="bad">{tok(reread)} tok</b> to
-          re-read ({Math.round((100 * reread) / call.promptChars)}%).
+          Against the previous call of this kind and actor (
+          <a onClick={() => onOpen(previous.id)}>#{previous.id}</a>):{" "}
+          <b>{fmt(previous.stablePrefixTokens)} tok</b> unchanged from the start, which a prefix
+          cache could reuse (
+          {Math.round((100 * previous.stablePrefixTokens) / Math.max(1, call.promptTokens))}%).
         </p>
       ) : (
-        <p className="cache">
-          No earlier call of this kind for this NPC: the whole prompt is read.
+        <p className="cache">No earlier call of this kind and actor.</p>
+      )}
+
+      {usage.inputTokens !== null && (
+        <p className="hint">
+          Provider reported {fmt(usage.inputTokens)} input tok
+          {usage.cachedInputTokens !== null && <>, {fmt(usage.cachedInputTokens)} cached</>}
+          {usage.outputTokens !== null && <>, {fmt(usage.outputTokens)} output</>}
+          {usage.costUsd !== null && <>, ${usage.costUsd.toFixed(5)}</>}.
         </p>
       )}
 
-      <table className="kinds">
+      <table className="spans">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Segment</th>
+            <th>Role</th>
+            <th className="num">Tok</th>
+          </tr>
+        </thead>
         <tbody>
-          {[...byKind.entries()].map(([k, n]) => (
-            <tr key={k}>
+          {call.segments.map((s, i) => (
+            <tr key={i}>
               <td>
-                <i className={`k-${k}`} /> {KIND_LABEL[k]}
+                <i className={`st-${status(i)}`} title={STATUS_LABEL[status(i)]} />
               </td>
-              <td className="num">{tok(n)} tok</td>
-              <td className="num">{Math.round((100 * n) / call.promptChars)}%</td>
+              <td>
+                <details>
+                  <summary>{s.name}</summary>
+                  <pre>{s.text}</pre>
+                </details>
+              </td>
+              <td>{s.role}</td>
+              <td className="num">{fmt(s.tokens)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
       <h3>Reply</h3>
-      <pre className="reply">{call.replyFull || "(empty)"}</pre>
+      <pre className="reply">{call.reply || "(empty)"}</pre>
       {call.reasoning && (
         <details>
-          <summary>Thinking ({call.reasoning.length} chars)</summary>
+          <summary>Reasoning ({fmt(call.reasoning.length)} chars)</summary>
           <pre>{call.reasoning}</pre>
         </details>
       )}
       <details>
-        <summary>Sections ({call.anatomy.length})</summary>
-        <table className="spans">
-          <tbody>
-            {call.anatomy.map((s, i) => (
-              <tr key={i}>
-                <td>
-                  <i className={`k-${s.kind}`} />
-                </td>
-                <td>{s.label}</td>
-                <td className="num">{tok(s.length)}</td>
-                <td className="num">{reuse(s, call.sharedChars)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </details>
-      <details>
-        <summary>Full request</summary>
-        <pre>{JSON.stringify(call.request, null, 1)}</pre>
+        <summary>Parameters and metadata</summary>
+        <pre>{JSON.stringify({ params: call.params, meta: call.meta }, null, 1)}</pre>
       </details>
     </div>
   );
-}
-
-function reuse(span: Span, sharedChars: number): string {
-  if (span.start >= sharedChars) {
-    return "re-read";
-  }
-
-  return span.start + span.length <= sharedChars ? "reused" : "partly";
 }
