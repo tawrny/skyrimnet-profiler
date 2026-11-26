@@ -4,7 +4,7 @@
 //   GET /api/calls/:index           one call: request, reply, reasoning, anatomy, and the prefix it shares with
 //                                   the same NPC's previous call (what the model server could reuse)
 //   GET /api/volatility?last=N      section change rates over the last N calls
-//   GET /api/catalogue              the per-NPC action catalogue
+//   GET /api/catalogue              the action catalogue (per NPC, or shared)
 
 import { createServer, type ServerResponse } from "node:http";
 import { closeSync, existsSync, openSync, readSync, statSync } from "node:fs";

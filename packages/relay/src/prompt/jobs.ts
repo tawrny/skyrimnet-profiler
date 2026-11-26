@@ -1,5 +1,6 @@
 // Which SkyrimNet job a request is, from the opening of its first message.
 
+import { afterSharedCatalogue } from "./actions.ts";
 import { textOf, type ChatRequest } from "./messages.ts";
 
 export type Job = {
@@ -30,8 +31,9 @@ export const JOBS: readonly Job[] = [
 ];
 const OTHER: Job = { id: "other", label: "Other", noThink: false, match: () => true };
 
+/** The first message's text, after a shared action catalogue the relay placed ahead of it. */
 export function firstText(request: ChatRequest): string {
-  return textOf(request.messages?.[0]?.content).trimStart();
+  return afterSharedCatalogue(textOf(request.messages?.[0]?.content).trimStart());
 }
 
 export function classify(request: ChatRequest): Job {

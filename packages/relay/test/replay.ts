@@ -1,22 +1,23 @@
 // Replay a call log through the shaping pipeline in order, and measure for each dialogue turn how many tokens
 // differ from the same NPC's previous turn (the part a model server must re-read) before and after shaping.
-// Run: node test/replay.ts LOG [--trim] [--catalogue] [--reorder]
+// Run: node test/replay.ts LOG [--trim] [--catalogue off|npc|shared] [--reorder]
 
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import {
-  approxTokens, classify, DEFAULTS, promptText, shape, sharedPrefix, speaker,
+  approxTokens, CATALOGUE_MODES, classify, DEFAULTS, isCatalogueMode, promptText, shape, sharedPrefix, speaker,
   type CatalogueStore, type ChatRequest,
 } from "../src/prompt/index.ts";
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
-    trim: { type: "boolean" }, catalogue: { type: "boolean" }, reorder: { type: "boolean" },
+    trim: { type: "boolean" }, catalogue: { type: "string", default: "off" }, reorder: { type: "boolean" },
     warm: { type: "boolean" }, // fill the catalogue with a first pass, as a saved catalogue would be
   },
 });
-const opts = { ...DEFAULTS, trim: !!values.trim, catalogue: !!values.catalogue, reorder: !!values.reorder };
+if (!isCatalogueMode(values.catalogue)) throw new Error(`--catalogue must be one of ${CATALOGUE_MODES.join(", ")}`);
+const opts = { ...DEFAULTS, trim: !!values.trim, catalogue: values.catalogue, reorder: !!values.reorder };
 const store: CatalogueStore = {};
 const prevOrig = new Map<string, string>();
 const prevShaped = new Map<string, string>();
@@ -52,7 +53,7 @@ for (const line of lines) {
   }
   prevOrig.set(npc, o); prevShaped.set(npc, s);
 }
-const on = Object.entries(values).filter(([, v]) => v).map(([k]) => k).join("+") || "nothing";
+const on = Object.entries(values).filter(([, v]) => v && v !== "off").map(([k, v]) => (v === true ? k : `${k}=${v}`)).join("+") || "nothing";
 console.log(
   `${on.padEnd(22)} ${turns} same-NPC turns | prompt ${approxTokens(origSize / turns)} -> ${approxTokens(shapedSize / turns)} tok` +
   ` | re-read per turn ${approxTokens(origReread / turns)} -> ${approxTokens(shapedReread / turns)} tok` +

@@ -35,5 +35,18 @@ export function appendText(message: Message, addition: string): boolean {
   return false;
 }
 
+/** Prepend text to a message: to the string, or as a new first text part when the content is a part list. */
+export function prependText(message: Message, addition: string): boolean {
+  if (typeof message.content === "string") {
+    message.content = addition + message.content;
+    return true;
+  }
+  if (Array.isArray(message.content)) {
+    message.content.unshift({ type: "text", text: addition });
+    return true;
+  }
+  return false;
+}
+
 /** Estimated tokens for a length of text (SkyrimNet's prompts average about four characters a token). */
 export const approxTokens = (chars: number): number => Math.round(chars / 4);
