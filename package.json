@@ -1,0 +1,17 @@
+{
+  "name": "skyrimnet-profiler",
+  "private": true,
+  "description": "Relay, prompt shaping and a viewer for SkyrimNet's LLM calls",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "relay": "npm --workspace @skyrimnet/relay run start",
+    "viewer": "npm --workspace @skyrimnet/viewer run dev",
+    "test": "npm --workspace @skyrimnet/relay test",
+    "typecheck": "npm --workspaces run typecheck"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

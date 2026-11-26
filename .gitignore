@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.jsonl
+calls.json
+*.log
+*.log.out
+*.csv
+__pycache__/
+catalogue.json
