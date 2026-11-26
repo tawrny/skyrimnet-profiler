@@ -1,5 +1,5 @@
 {
-  "name": "@skyrimnet/viewer",
+  "name": "@volatility/viewer",
   "private": true,
   "description": "Local viewer for SkyrimNet's LLM calls: timeline, prompt anatomy and cache reuse, section volatility",
   "type": "module",
@@ -9,7 +9,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@skyrimnet/relay": "*",
+    "@volatility/skyrimnet": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

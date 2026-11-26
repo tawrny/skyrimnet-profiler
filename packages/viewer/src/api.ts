@@ -1,4 +1,4 @@
-import type { SectionStat, Span } from "@skyrimnet/relay/prompt";
+import type { SectionStat, Span } from "@volatility/skyrimnet";
 
 export type CallSummary = {
   index: number;

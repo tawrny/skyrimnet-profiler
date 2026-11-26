@@ -1,7 +1,7 @@
 // Logging relay between SkyrimNet and an OpenAI-compatible server: llama-server locally, or OpenRouter.
 //
 // SkyrimNet only logs prompts and replies for its OpenRouter provider. This relay listens where SkyrimNet sends
-// requests, shapes each chat request (see prompt/shape.ts), forwards it, streams the reply back as it
+// requests, shapes each chat request (see @volatility/skyrimnet shape.ts), forwards it, streams the reply back as it
 // arrives, and appends one JSON line per call to a log. A second, read-only port serves that log to the viewer.
 //
 //   node src/server.ts [--listen 8089] [--upstream http://127.0.0.1:8090] [--log PATH] [--catalogue-file PATH]
@@ -25,7 +25,7 @@ import {
   type CatalogueStore,
   type ChatRequest,
   type ShapeReport,
-} from "./prompt/index.ts";
+} from "@volatility/skyrimnet";
 import { startApi } from "./api.ts";
 
 const { values: args } = parseArgs({

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Span, SpanKind } from "@skyrimnet/relay/prompt";
+import type { Span, SpanKind } from "@volatility/skyrimnet";
 import { api, type CallDetail } from "./api.ts";
 
 const KIND_LABEL: Record<SpanKind, string> = {

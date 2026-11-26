@@ -1,16 +1,14 @@
 {
-  "name": "@skyrimnet/relay",
+  "name": "@volatility/relay",
   "private": true,
   "description": "Logging relay between SkyrimNet and a local model server, with prompt shaping for caching",
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts",
-    "./prompt": "./src/prompt/index.ts"
-  },
   "scripts": {
     "start": "node src/server.ts",
-    "test": "node --test \"test/**/*.test.ts\"",
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@volatility/skyrimnet": "*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

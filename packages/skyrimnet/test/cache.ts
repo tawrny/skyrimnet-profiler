@@ -5,7 +5,7 @@
 
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { approxTokens, reach, seen, type ChatRequest, type Seen } from "../src/prompt/index.ts";
+import { approxTokens, reach, seen, type ChatRequest, type Seen } from "../src/index.ts";
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,

@@ -2,7 +2,7 @@
 // Input: a JSONL of {original, trim, reorder} written by the Python versions. Run: node test/parity.ts FILE
 
 import { readFileSync } from "node:fs";
-import { moveStableToSystem, trimRequest, type ChatRequest } from "../src/prompt/index.ts";
+import { moveStableToSystem, trimRequest, type ChatRequest } from "../src/index.ts";
 
 const file = process.argv[2];
 

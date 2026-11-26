@@ -16,7 +16,7 @@ import {
   speaker,
   type CatalogueStore,
   type ChatRequest,
-} from "../src/prompt/index.ts";
+} from "../src/index.ts";
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,

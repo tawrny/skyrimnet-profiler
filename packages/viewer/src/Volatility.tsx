@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { SectionStat } from "@skyrimnet/relay/prompt";
+import type { SectionStat } from "@volatility/skyrimnet";
 import { api } from "./api.ts";
 
 /** How often each context section changed between consecutive dialogue prompts of the same NPC. */

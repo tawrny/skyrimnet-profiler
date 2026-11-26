@@ -18,7 +18,7 @@ import {
   volatility,
   type CatalogueStore,
   type ChatRequest,
-} from "./prompt/index.ts";
+} from "@volatility/skyrimnet";
 
 type Rec = {
   time: string;
