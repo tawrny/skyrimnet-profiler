@@ -66,11 +66,22 @@ interface Timings {
   predicted_ms?: number;
 }
 
-/** The assistant text, reasoning and llama-server timings from a JSON or SSE reply body. */
-function replyText(body: string, streamed: boolean): { reply: string; reasoning: string; timings: Timings | null } {
+/** OpenRouter's account of a call, sent with the reply's last chunk: tokens, the cached share, and cost in USD. */
+interface Usage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  prompt_tokens_details?: { cached_tokens?: number };
+  cost?: number;
+}
+
+type ReplyParts = { reply: string; reasoning: string; timings: Timings | null; usage: Usage | null };
+
+/** The assistant text, reasoning, llama-server timings and OpenRouter usage from a JSON or SSE reply body. */
+function replyText(body: string, streamed: boolean): ReplyParts {
   const content: string[] = [];
   const reasoning: string[] = [];
   let timings: Timings | null = null;
+  let usage: Usage | null = null;
   try {
     if (streamed) {
       for (const raw of body.split("\n")) {
@@ -78,6 +89,7 @@ function replyText(body: string, streamed: boolean): { reply: string; reasoning:
         if (!line.startsWith("data:") || line.slice(5).trim() === "[DONE]") continue;
         const chunk = JSON.parse(line.slice(5).trim());
         timings = chunk.timings ?? timings;
+        usage = chunk.usage ?? usage;
         for (const ch of chunk.choices ?? []) {
           content.push(ch.delta?.content ?? "");
           reasoning.push(ch.delta?.reasoning_content ?? "");
@@ -86,15 +98,16 @@ function replyText(body: string, streamed: boolean): { reply: string; reasoning:
     } else {
       const parsed = JSON.parse(body);
       timings = parsed.timings ?? null;
+      usage = parsed.usage ?? null;
       for (const ch of parsed.choices ?? []) {
         content.push(ch.message?.content ?? "");
         reasoning.push(ch.message?.reasoning_content ?? "");
       }
     }
   } catch {
-    return { reply: body.slice(0, 2000), reasoning: "", timings };
+    return { reply: body.slice(0, 2000), reasoning: "", timings, usage };
   }
-  return { reply: content.join(""), reasoning: reasoning.join(""), timings };
+  return { reply: content.join(""), reasoning: reasoning.join(""), timings, usage };
 }
 
 const stamp = () => {
@@ -174,7 +187,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   function record(status: number | null, contentType: string, captured: Buffer[]) {
     if (recorded || !isChat) return;
     recorded = true;
-    const { reply, reasoning, timings } = replyText(Buffer.concat(captured).toString("utf8"), contentType.includes("text/event-stream"));
+    const { reply, reasoning, timings, usage } = replyText(Buffer.concat(captured).toString("utf8"), contentType.includes("text/event-stream"));
     const rec = {
       time: stamp(),
       status,
@@ -183,6 +196,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       seconds: Math.round((performance.now() - t0) / 10) / 100,
       first_byte_ms: firstByteMs === null ? null : Math.round(firstByteMs),
       timings,
+      usage,
       shaping: report,
       request: shaped ?? { raw: body.subarray(0, 2000).toString("utf8") },
       reply,
