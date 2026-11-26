@@ -107,6 +107,35 @@ test("shape: thinking off for structured jobs, on for dialogue and pickers; max_
   assert.equal(classify(dialogue("x", "y", [])).id, "dialogue");
 });
 
+// A dialogue prompt as SkyrimNet sends it: format rules, entries naming the speaker, a live quest entry, the
+// guidelines, then the overlay's own line.
+const GUARD = "Jomarr [Whiterun Guard]";
+const fullActions = (npc: string, nearby: string) =>
+  [
+    "## Actions Available",
+    "After your dialogue, you may optionally perform ONE action if appropriate.",
+    "**Action Format:**",
+    "- `ACTION: ActionName` — action with no parameters",
+    "**Available Actions:**",
+    `- \`Travel\` — SELECT THIS when ${npc} decides to: go somewhere.`,
+    `- \`Clean\` PARAMS: {"target":"Who. Valid Choices: ${nearby}. Choose one of these actor names EXACTLY."} — Cleans someone.`,
+    "- `TriggerDialogueLine` PARAMS: {\"form_id\":\"code\"} —",
+    `The exchanges below are actions ${npc} can trigger right now: [0001] Rent a room.`,
+    "",
+    "**Guidelines:**",
+    "- Only use an action if it fits",
+    "- You can initiate actions unprompted",
+    "Actions you can take now: `Travel`, `Clean`.",
+  ].join("\n");
+
+const GUARD_NEARBY = "'Tawrny', 'Dro'zamarak [Mercenary]'";
+
+test("actor lists holding a name with an apostrophe are listed once as nearby actors", () => {
+  const t = trim(fullActions(GUARD, GUARD_NEARBY));
+  assert.match(t, /Nearby actors: Tawrny, Dro'zamarak \[Mercenary\]\./);
+  assert.doesNotMatch(t, /Valid Choices/);
+});
+
 test("anatomy spans cover the whole prompt text exactly", () => {
   const r = dialogue("standing", "3 PM", ["Tawrny: hello", "Lydia: hm"]);
   applyCatalogue(r, "Lydia", {});
