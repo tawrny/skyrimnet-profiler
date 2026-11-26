@@ -10,6 +10,9 @@ const STATUS_LABEL: Record<SegmentStatus | "first", string> = {
 
 const fmt = (n: number) => n.toLocaleString();
 
+/** Segments narrower than this share of the track are too thin to label; their name is in the tooltip. */
+const MIN_LABELLED_SHARE = 0.03;
+
 export function CallView({ id, onOpen }: { id: number; onOpen: (id: number) => void }) {
   const [detail, setDetail] = useState<CallDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +61,10 @@ export function CallView({ id, onOpen }: { id: number; onOpen: (id: number) => v
               className={`seg st-${status(i)}`}
               style={{ width: pct(s.tokens) }}
               title={`${s.name}: ${fmt(s.tokens)} tok, ${STATUS_LABEL[status(i)].toLowerCase()}`}
-            />
+            >
+              {s.tokens / Math.max(1, call.promptTokens) >= MIN_LABELLED_SHARE &&
+                s.name.split(" › ").at(-1)}
+            </span>
           ))}
           {previous && previous.stablePrefixTokens > 0 && (
             <span className="reused" style={{ width: pct(previous.stablePrefixTokens) }} />

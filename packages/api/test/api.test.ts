@@ -38,6 +38,16 @@ const OPENING_ACROSS_ACTORS = {
   ],
 };
 
+const BAD_LIST_QUERIES = [
+  "limit=ten",
+  "sort=mood",
+  "sort=time&order=up",
+  "cachedAtLeast=2",
+  "cachedBelow=-0.1",
+  "cachedBelow=",
+  "cachedAtLeast=half",
+];
+
 const server = startApi(0, openSqliteStore(":memory:"));
 
 await once(server, "listening");
@@ -104,7 +114,23 @@ describe("GET /api/volatility", () => {
 });
 
 describe("GET /api/calls", () => {
-  it("rejects a limit that isn't a whole number", async () => {
-    assert.equal((await get("/api/calls?limit=ten")).status, 400);
+  for (const query of BAD_LIST_QUERIES) {
+    it(`rejects ${query}`, async () => {
+      assert.equal((await get(`/api/calls?${query}`)).status, 400);
+    });
+  }
+
+  it("sorts as asked", async () => {
+    const { body } = await get("/api/calls?sort=time&order=asc");
+
+    assert.partialDeepStrictEqual(body, {
+      calls: [{ time: LYDIA_1.time }, { time: MJOLL_1.time }, { time: LYDIA_2.time }],
+    });
+  });
+
+  it("filters by cache share, leaving out calls with no cache figures", async () => {
+    const { body } = await get("/api/calls?cachedAtLeast=0&cachedBelow=1");
+
+    assert.partialDeepStrictEqual(body, { total: 0 });
   });
 });

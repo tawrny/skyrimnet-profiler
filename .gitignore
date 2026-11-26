@@ -7,3 +7,6 @@ calls.json
 *.csv
 __pycache__/
 catalogue.json
+*.db
+*.db-wal
+*.db-shm

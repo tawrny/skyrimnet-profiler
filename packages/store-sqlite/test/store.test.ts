@@ -1,6 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { NO_USAGE, toRecordedCall, type CallInput } from "@volatility/core";
+import {
+  NO_USAGE,
+  toRecordedCall,
+  type CallInput,
+  type CallQuery,
+  type RecordedCall,
+} from "@volatility/core";
 import { openSqliteStore } from "../src/index.ts";
 
 const call = (time: string, actor: string, latest: string): CallInput => ({
@@ -31,6 +37,55 @@ const UNLABELLED = toRecordedCall({
   ...call("2026-11-27T10:00:09Z", "Ann", "Hi"),
   labels: undefined,
 });
+
+// Five calls for filtering and sorting, oldest first. Each sorts differently by every key; D and E have no cache
+// share (no usage figures, and zero input tokens), D and E no cost.
+const profiled = (
+  time: string,
+  latest: string,
+  durationMs: number,
+  usage: Partial<CallInput["usage"]>,
+) =>
+  toRecordedCall({
+    ...call(`2026-11-27T11:00:0${time}Z`, "Lydia", latest),
+    durationMs,
+    usage: { ...NO_USAGE, ...usage },
+  });
+
+const A = profiled("1", "x".repeat(400), 500, {
+  inputTokens: 100,
+  cachedInputTokens: 10,
+  costUsd: 0.003,
+});
+const B = profiled("2", "x".repeat(40), 3000, {
+  inputTokens: 100,
+  cachedInputTokens: 50,
+  costUsd: 0.001,
+});
+const C = profiled("3", "x".repeat(4000), 1000, {
+  inputTokens: 100,
+  cachedInputTokens: 90,
+  costUsd: 0.002,
+});
+const D = profiled("4", "x".repeat(800), 2000, {});
+const E = profiled("5", "x".repeat(1200), 4000, { inputTokens: 0, cachedInputTokens: 0 });
+const PROFILED = [A, B, C, D, E];
+
+const CACHE_FILTERS: [string, CallQuery["cachedShare"], RecordedCall[]][] = [
+  ["below a share", { below: 0.2 }, [A]],
+  ["at least a share, inclusive", { atLeast: 0.5 }, [C, B]],
+  ["between, the upper bound exclusive", { atLeast: 0.1, below: 0.9 }, [B, A]],
+  ["any share, leaving out calls without one", {}, [C, B, A]],
+];
+
+const SORTS: [CallQuery["sort"], RecordedCall[]][] = [
+  [{ by: "time", descending: false }, [A, B, C, D, E]],
+  [{ by: "duration", descending: true }, [E, B, D, C, A]],
+  [{ by: "promptTokens", descending: true }, [C, E, D, A, B]],
+  [{ by: "cachedShare", descending: false }, [A, B, C, D, E]],
+  [{ by: "cachedShare", descending: true }, [C, B, A, E, D]],
+  [{ by: "cost", descending: false }, [B, C, A, D, E]],
+];
 
 async function storeWith(...calls: (typeof LYDIA_1)[]) {
   const store = openSqliteStore(":memory:");
@@ -81,6 +136,30 @@ describe("listCalls", () => {
 
     assert.deepEqual([page.total, page.calls.map((c) => c.time)], [2, [LYDIA_2.time]]);
   });
+
+  for (const [name, cachedShare, expected] of CACHE_FILTERS) {
+    it(`filters by cache share: ${name}`, async () => {
+      const store = await storeWith(...PROFILED);
+      const page = await store.listCalls({ cachedShare }, { limit: 10, offset: 0 });
+
+      assert.deepEqual(
+        [page.total, page.calls.map((c) => c.time)],
+        [expected.length, expected.map((c) => c.time)],
+      );
+    });
+  }
+
+  for (const [sort, expected] of SORTS) {
+    it(`sorts by ${sort?.by}, ${sort?.descending ? "descending" : "ascending"}, missing values last`, async () => {
+      const store = await storeWith(...PROFILED);
+      const page = await store.listCalls({ sort }, { limit: 10, offset: 0 });
+
+      assert.deepEqual(
+        page.calls.map((c) => c.time),
+        expected.map((c) => c.time),
+      );
+    });
+  }
 
   it("sums the prompt's segment tokens", async () => {
     const store = await storeWith(LYDIA_1);

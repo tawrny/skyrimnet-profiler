@@ -8,6 +8,7 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import {
+  CALL_SORTS,
   compare,
   defaultSource,
   isCallInput,
@@ -16,6 +17,8 @@ import {
   toRecordedCall,
   volatilityReport,
   type CallFilter,
+  type CallQuery,
+  type CallSort,
   type CallStore,
   type Source,
 } from "@volatility/core";
@@ -55,6 +58,59 @@ function filterOf(params: URLSearchParams): CallFilter {
   const actor = params.get("actor");
 
   return { ...(kind ? { kind } : {}), ...(actor ? { actor } : {}) };
+}
+
+const isCallSort = (s: string): s is CallSort => CALL_SORTS.some((sort) => sort === s);
+
+function share(params: URLSearchParams, name: string): number | undefined {
+  const raw = params.get(name);
+
+  if (raw === null) {
+    return undefined;
+  }
+
+  const n = Number(raw);
+
+  if (raw === "" || !(n >= 0 && n <= 1)) {
+    throw httpError(400, `${name} must be a share from 0 to 1`);
+  }
+
+  return n;
+}
+
+function cachedShareOf(params: URLSearchParams): Pick<CallQuery, "cachedShare"> {
+  const atLeast = share(params, "cachedAtLeast");
+  const below = share(params, "cachedBelow");
+
+  if (atLeast === undefined && below === undefined) {
+    return {};
+  }
+
+  return {
+    cachedShare: {
+      ...(atLeast === undefined ? {} : { atLeast }),
+      ...(below === undefined ? {} : { below }),
+    },
+  };
+}
+
+function queryOf(params: URLSearchParams): CallQuery {
+  const by = params.get("sort");
+  const order = params.get("order") ?? "desc";
+
+  if (by !== null && !isCallSort(by)) {
+    throw httpError(400, `sort must be one of ${CALL_SORTS.join(", ")}`);
+  }
+
+  if (order !== "asc" && order !== "desc") {
+    throw httpError(400, "order must be asc or desc");
+  }
+
+  return {
+    ...filterOf(params),
+    ...cachedShareOf(params),
+    ...(by === null ? {} : { sort: { by, descending: order === "desc" } }),
+  };
 }
 
 function count(params: URLSearchParams, name: string, fallback: number, max: number): number {
@@ -133,7 +189,7 @@ export function apiHandler(store: CallStore, source: Source = defaultSource) {
         offset: count(url.searchParams, "offset", 0, Number.MAX_SAFE_INTEGER),
       };
 
-      return store.listCalls(filterOf(url.searchParams), page);
+      return store.listCalls(queryOf(url.searchParams), page);
     }
 
     if (callId !== undefined) {

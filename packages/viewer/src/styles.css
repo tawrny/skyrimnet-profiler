@@ -176,7 +176,7 @@ h3 {
 .anatomy .track {
   display: flex;
   position: relative;
-  height: 34px;
+  height: 48px;
   background: var(--line);
   border-radius: 6px;
   overflow: hidden;
@@ -184,6 +184,12 @@ h3 {
 .anatomy .seg {
   flex: none;
   border-right: 1px solid var(--bg);
+  padding: 8px 4px 0;
+  color: var(--bg);
+  font-size: 11px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .anatomy .reused {
   position: absolute;
@@ -292,4 +298,24 @@ summary {
 }
 .ratebar .hot {
   background: var(--st-new);
+}
+.listbar {
+  display: flex;
+  gap: 6px;
+}
+.listbar button {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 2px 8px;
+}
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+th.sortable:hover,
+th.sorted {
+  color: var(--text);
 }

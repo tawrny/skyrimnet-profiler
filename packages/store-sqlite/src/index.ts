@@ -5,7 +5,9 @@ import { DatabaseSync, type SQLInputValue, type SQLOutputValue } from "node:sqli
 import {
   isRecord,
   type CallFilter,
+  type CallQuery,
   type CallRow,
+  type CallSort,
   type CallStore,
   type CallSummary,
   type RecordedCall,
@@ -114,7 +116,9 @@ function toSummary(row: Row): CallSummary {
   };
 }
 
-function where(filter: CallFilter): { clause: string; params: SQLInputValue[] } {
+type Terms = { terms: string[]; params: SQLInputValue[] };
+
+function filterTerms(filter: CallFilter): Terms {
   const terms: string[] = [];
   const params: SQLInputValue[] = [];
 
@@ -128,7 +132,53 @@ function where(filter: CallFilter): { clause: string; params: SQLInputValue[] } 
     params.push(filter.actor);
   }
 
+  return { terms, params };
+}
+
+// SQLite gives NULL for a division by zero, so a call with no input tokens has no share, like one with no figures.
+const CACHED_SHARE = "(1.0 * cached_input_tokens / input_tokens)";
+
+function queryTerms(query: CallQuery): Terms {
+  const { terms, params } = filterTerms(query);
+
+  if (query.cachedShare === undefined) {
+    return { terms, params };
+  }
+
+  const { atLeast, below } = query.cachedShare;
+
+  terms.push(`${CACHED_SHARE} IS NOT NULL`);
+
+  if (atLeast !== undefined) {
+    terms.push(`${CACHED_SHARE} >= ?`);
+    params.push(atLeast);
+  }
+
+  if (below !== undefined) {
+    terms.push(`${CACHED_SHARE} < ?`);
+    params.push(below);
+  }
+
+  return { terms, params };
+}
+
+function where({ terms, params }: Terms): { clause: string; params: SQLInputValue[] } {
   return { clause: terms.length === 0 ? "" : `WHERE ${terms.join(" AND ")}`, params };
+}
+
+const SORT_COLUMN: Record<CallSort, string> = {
+  time: "time",
+  duration: "duration_ms",
+  promptTokens: "prompt_tokens",
+  cachedShare: CACHED_SHARE,
+  cost: "cost_usd",
+};
+
+function orderBy(query: CallQuery): string {
+  const { by, descending } = query.sort ?? { by: "time", descending: true };
+  const direction = descending ? "DESC" : "ASC";
+
+  return `ORDER BY ${SORT_COLUMN[by]} ${direction} NULLS LAST, id ${direction}`;
 }
 
 export function openSqliteStore(path: string): CallStore {
@@ -246,7 +296,7 @@ export function openSqliteStore(path: string): CallStore {
   };
 
   const callRows = (filter: CallFilter): CallRow[] => {
-    const { clause, params } = where(filter);
+    const { clause, params } = where(filterTerms(filter));
     const calls = new Map<number, CallRow>();
 
     for (const row of db
@@ -294,12 +344,12 @@ export function openSqliteStore(path: string): CallStore {
 
   return {
     record: async (call) => record(call),
-    listCalls: async (filter, page) => {
-      const { clause, params } = where(filter);
+    listCalls: async (query, page) => {
+      const { clause, params } = where(queryTerms(query));
       const total = db.prepare(`SELECT count(*) AS n FROM calls ${clause}`).get(...params);
       const rows = db
         .prepare(
-          `SELECT ${SUMMARY_COLUMNS} FROM calls ${clause} ORDER BY time DESC, id DESC LIMIT ? OFFSET ?`,
+          `SELECT ${SUMMARY_COLUMNS} FROM calls ${clause} ${orderBy(query)} LIMIT ? OFFSET ?`,
         )
         .all(...params, page.limit, page.offset);
 
