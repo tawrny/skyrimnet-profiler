@@ -1,38 +1,74 @@
-import type { SectionStat, Span } from "@skyrimnet/relay/prompt";
+// The profiler API's responses, typed from core. The viewer trusts its own API, so the JSON isn't validated.
 
-export type CallSummary = {
-  index: number;
-  time: string;
-  seconds: number;
-  status?: number;
-  job: string;
-  jobLabel: string;
-  npc: string | null;
-  promptTokens: number;
-  thinking: boolean;
-  gaveUp: boolean;
-  reply: string;
-};
+import type {
+  CallSort,
+  CallSummary,
+  Comparison,
+  KindCount,
+  SegmentVolatility,
+  StoredCall,
+} from "@volatility/core";
 
-export type CallDetail = CallSummary & {
-  request: { messages?: { role: string; content: unknown }[] };
-  replyFull: string;
-  reasoning: string;
-  shaping: unknown;
-  anatomy: Span[];
-  promptChars: number;
-  previousIndex: number | null;
-  sharedChars: number;
+export type {
+  CallSort,
+  CallSummary,
+  KindCount,
+  SegmentStatus,
+  SegmentVolatility,
+  StoredCall,
+} from "@volatility/core";
+
+export type CallDetail = {
+  call: StoredCall;
+  previous: (Comparison & { id: number }) | null;
 };
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path);
-  if (!res.ok) throw new Error(`${path}: ${res.status}`);
-  return (await res.json()) as T;
+
+  if (!res.ok) {
+    throw new Error(`${path}: ${res.status}`);
+  }
+
+  const body: T = await res.json();
+
+  return body;
 }
 
+const query = (params: Record<string, string | number | null>) => {
+  const search = new URLSearchParams();
+
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== null) {
+      search.set(k, String(v));
+    }
+  }
+
+  return search.toString();
+};
+
+export type ListOptions = {
+  kind: string | null;
+  sort: CallSort;
+  descending: boolean;
+  cachedAtLeast: number | null;
+  cachedBelow: number | null;
+};
+
 export const api = {
-  calls: (limit = 500) => get<{ total: number; calls: CallSummary[] }>(`/api/calls?limit=${limit}`),
-  call: (index: number) => get<CallDetail>(`/api/calls/${index}`),
-  volatility: (last = 2000) => get<SectionStat[]>(`/api/volatility?last=${last}`),
+  kinds: () => get<KindCount[]>("/api/kinds"),
+  calls: (o: ListOptions, limit = 500) =>
+    get<{ total: number; calls: CallSummary[] }>(
+      `/api/calls?${query({
+        kind: o.kind,
+        sort: o.sort,
+        order: o.descending ? "desc" : "asc",
+        cachedAtLeast: o.cachedAtLeast,
+        cachedBelow: o.cachedBelow,
+        limit,
+      })}`,
+    ),
+  call: (id: number) => get<CallDetail>(`/api/calls/${id}`),
+  volatility: (kind: string | null) =>
+    get<{ calls: number; segments: SegmentVolatility[] }>(`/api/volatility?${query({ kind })}`),
 };

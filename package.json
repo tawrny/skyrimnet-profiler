@@ -1,15 +1,26 @@
 {
-  "name": "skyrimnet-profiler",
+  "name": "volatility-profiler",
   "private": true,
-  "description": "Relay, prompt shaping and a viewer for SkyrimNet's LLM calls",
+  "description": "Volatility profiling for LLM prompts: which parts are shared across actors, which change between calls, and which lines change",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "relay": "npm --workspace @skyrimnet/relay run start",
-    "viewer": "npm --workspace @skyrimnet/viewer run dev",
-    "test": "npm --workspace @skyrimnet/relay test",
-    "typecheck": "npm --workspaces run typecheck"
+    "api": "npm --workspace @volatility/api run start --",
+    "relay": "npm --workspace @volatility/relay run start --",
+    "skyrimnet:relay": "npm --workspace @volatility/skyrimnet run relay --",
+    "skyrimnet:import": "npm --workspace @volatility/skyrimnet run import --",
+    "viewer": "npm --workspace @volatility/viewer run dev",
+    "test": "npm --workspaces --if-present test",
+    "typecheck": "npm --workspaces run typecheck",
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "^6.0.1",
+    "oxfmt": "^0.80.0",
+    "oxlint": "^1.95.0"
   },
   "engines": {
     "node": ">=24"

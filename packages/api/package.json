@@ -1,0 +1,22 @@
+{
+  "name": "@volatility/api",
+  "private": true,
+  "description": "The profiler's HTTP API: ingest calls, list them, and report segment volatility",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@volatility/core": "*",
+    "@volatility/store-sqlite": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

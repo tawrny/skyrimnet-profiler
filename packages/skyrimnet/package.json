@@ -1,0 +1,23 @@
+{
+  "name": "@volatility/skyrimnet",
+  "private": true,
+  "description": "SkyrimNet as a source: job and speaker labels, and the prompt-shaping experiments",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "relay": "node src/cli/relay.ts",
+    "import": "node src/cli/import.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@volatility/core": "*",
+    "@volatility/relay": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
