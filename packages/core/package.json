@@ -1,0 +1,17 @@
+{
+  "name": "@volatility/core",
+  "private": true,
+  "description": "Volatility profiling's domain: calls, segments, labels, the three analyses and the CallStore port",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
